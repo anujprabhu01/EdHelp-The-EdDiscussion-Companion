@@ -79,6 +79,8 @@ public class LoginPageUI {
      * Helper Methods for Setting Up UI Elements
      **********************************************************************************************/
 	private void handleLogin(gp360EdDisc_GUIdriver driver) {
+		driver.showPopupWindow();
+		//if you exit the pop up without selecting you get logged out
 		driver.loadFinishAccountSetup(); //remove
 		//If it is the users first time logging in call  *** driver.FinishAccountSetup() ***
 		//ADD CODE HERE USE SQL DATABASE to ensure account credentials and 

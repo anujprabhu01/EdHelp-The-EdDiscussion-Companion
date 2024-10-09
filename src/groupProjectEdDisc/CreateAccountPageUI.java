@@ -11,6 +11,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.scene.control.Button;
 
+import java.sql.SQLException;
 
 
 
@@ -30,6 +31,10 @@ public class CreateAccountPageUI {
 
     private Label label_AccountStatus = new Label("");
     private Button btn_CreateAccount = new Button("Create Account");
+    
+    private boolean admin = false;
+	private boolean instructor = false;
+	private boolean student = false;
 	
 	
 	public CreateAccountPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
@@ -71,7 +76,16 @@ public class CreateAccountPageUI {
             
         // Handle account creation attempt
         btn_CreateAccount.setOnAction(e -> {
-            handleCreateAccount(driver);
+        	try {
+        		handleCreateAccount(driver);
+        	}
+        	catch (SQLException s) {
+        		System.out.print("ERRRRRORORORO");
+        	}
+        	finally {
+        		
+        	}
+            
         });
         
         theRoot.getChildren().addAll(label_ApplicationTitle, label_AccountCode, text_AccountCode,
@@ -84,9 +98,32 @@ public class CreateAccountPageUI {
     /**********************************************************************************************
      * Helper Methods for Setting Up UI Elements
      **********************************************************************************************/
-	private void handleCreateAccount(gp360EdDisc_GUIdriver driver) {
-		//FIXME ADD CODE HERE to create the account in database
-		driver.loadloginPage();
+	private void handleCreateAccount(gp360EdDisc_GUIdriver driver) throws SQLException {
+		try {
+			admin = false;
+			instructor = false;
+			student = false;
+			if (text_AccountCode.getText().contains("1")) {//1 = Admin 
+				admin = true;
+			}
+			if (text_AccountCode.getText().contains("2")) {//2 = instuctor 
+				instructor = true;
+			}
+			if (text_AccountCode.getText().contains("1")) {//3 = student
+				student = true;
+			}
+			if (gp360EdDisc_GUIdriver.getDBHelper().isDatabaseEmpty()) {
+				admin = true;
+				instructor = false;
+				student = false;
+			}
+			gp360EdDisc_GUIdriver.getDBHelper().register(text_Username.getText(), text_Password.getText(), admin, instructor, student, false, false);
+			driver.loadloginPage();
+		}
+		finally {
+			
+		}
+		
 	}
 	
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {
