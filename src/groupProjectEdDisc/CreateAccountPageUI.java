@@ -35,6 +35,8 @@ public class CreateAccountPageUI {
     private boolean admin = false;
 	private boolean instructor = false;
 	private boolean student = false;
+    
+    private Label label_textFieldEmpty = new Label("please fill all required text fields");
 	
 	
 	public CreateAccountPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
@@ -67,6 +69,11 @@ public class CreateAccountPageUI {
         // Status Label
         setupLabelUI(label_AccountStatus, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
                 Pos.BASELINE_LEFT, 10, 340);
+        
+     // FieldEmpty label
+        setupLabelUI(label_textFieldEmpty, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 10, 350, "red");
+        label_textFieldEmpty.setVisible(false);
+        label_textFieldEmpty.setManaged(false);
             
         // Add create account button
         btn_CreateAccount.setText("Create Account");
@@ -76,15 +83,17 @@ public class CreateAccountPageUI {
             
         // Handle account creation attempt
         btn_CreateAccount.setOnAction(e -> {
-        	try {
-        		handleCreateAccount(driver);
-        	}
-        	catch (SQLException s) {
-        		System.out.print("ERRRRRORORORO");
-        	}
-        	finally {
-        		
-        	}
+        	if (isTextFieldEmpty(text_Username, text_Password, text_ReenterPassword)) {
+                label_textFieldEmpty.setVisible(true);
+                label_textFieldEmpty.setManaged(true);
+            } else {
+                try {
+                    handleCreateAccount(driver); // Handle the account creation here
+                } catch (SQLException ex) {
+                    System.err.println("Error during account creation: " + ex.getMessage());
+                    ex.printStackTrace(); // Optionally, you can log or handle this further
+                }
+            }
             
         });
         
@@ -92,7 +101,7 @@ public class CreateAccountPageUI {
                 label_Username, text_Username, 
                 label_Password, text_Password, 
                 label_ReenterPassword, text_ReenterPassword,
-                label_AccountStatus);
+                label_AccountStatus, label_textFieldEmpty);
     }
 
     /**********************************************************************************************
@@ -103,13 +112,13 @@ public class CreateAccountPageUI {
 			admin = false;
 			instructor = false;
 			student = false;
-			if (text_AccountCode.getText().contains("1")) {//1 = Admin 
+			if (text_AccountCode.getText().contains("1")) {//1 = admin 
 				admin = true;
 			}
-			if (text_AccountCode.getText().contains("2")) {//2 = instuctor 
+			if (text_AccountCode.getText().contains("2")) {//2 = instructor 
 				instructor = true;
 			}
-			if (text_AccountCode.getText().contains("1")) {//3 = student
+			if (text_AccountCode.getText().contains("3")) {//3 = student
 				student = true;
 			}
 			if (gp360EdDisc_GUIdriver.getDBHelper().isDatabaseEmpty()) {
@@ -133,6 +142,15 @@ public class CreateAccountPageUI {
         l.setLayoutX(x);
         l.setLayoutY(y);
     }
+    
+    private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color) {
+        l.setFont(Font.font(font, fontSize));
+        l.setMinWidth(width);
+        l.setAlignment(alignment);
+        l.setLayoutX(x);
+        l.setLayoutY(y);
+        l.setStyle("-fx-text-fill: " + color + ";"); // set color of label
+    }
 
     private void setupTextUI(TextField t, String font, double fontSize, double width, Pos alignment, double x, double y, boolean editable) {
         t.setFont(Font.font(font, fontSize));
@@ -142,5 +160,18 @@ public class CreateAccountPageUI {
         t.setLayoutX(x);
         t.setLayoutY(y);
         t.setEditable(editable);
+    }
+    
+    /**********************************************************************************************
+     * Other Helper Methods
+     **********************************************************************************************/
+    private boolean isTextFieldEmpty(TextField...fields) {
+    	boolean flag_userPassEmpty = false;
+    	for(TextField field : fields) {
+    		if(field.getText().isEmpty()) {
+    			flag_userPassEmpty = true;
+    		}
+    	}
+    	return flag_userPassEmpty;
     }
 }

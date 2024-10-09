@@ -14,6 +14,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import java.sql.SQLException;
 
+// H2 imports
+import java.sql.SQLException;
+
+// Scanner if needed
+import java.util.Scanner;
+
 /*******
  * <p>  Class </p>
  * 
@@ -29,13 +35,14 @@ import java.sql.SQLException;
 
 public class gp360EdDisc_GUIdriver extends Application {
 	
+	private static final DatabaseHelper databaseHelper = new DatabaseHelper();
+	// private static final Scanner scanner = new Scanner(System.in);
+	
 	/** The width of the pop-up window for the user interface */
 	public final static double WINDOW_WIDTH = 500;
 	/** The height of the pop-up window for the user interface */
 	public final static double WINDOW_HEIGHT = 500;
 	public static String USERNAME = "";
-	
-	private static final DatabaseHelper databaseHelper = new DatabaseHelper();
 	
 	private Scene scene;
 	private Pane theRoot;

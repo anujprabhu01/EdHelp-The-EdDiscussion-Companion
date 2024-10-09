@@ -237,6 +237,7 @@ public class AdminAccountPageUI {
 	}
 	
 	private void handleLogOut(gp360EdDisc_GUIdriver driver) {
+		gp360EdDisc_GUIdriver.USERNAME = "";
 		driver.loadloginPage();
 	}
 	

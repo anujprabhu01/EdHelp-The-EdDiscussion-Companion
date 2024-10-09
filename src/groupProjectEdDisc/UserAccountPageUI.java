@@ -47,6 +47,7 @@ public class UserAccountPageUI {
      **********************************************************************************************/
 	private void handleLogOut(gp360EdDisc_GUIdriver driver) {
 		//Log Out
+		gp360EdDisc_GUIdriver.USERNAME = "";
 		driver.loadloginPage();
 	}
 	
@@ -58,15 +59,6 @@ public class UserAccountPageUI {
         l.setLayoutY(y);
     }
 
-    /*private void setupTextUI(TextField t, String font, double fontSize, double width, Pos alignment, double x, double y, boolean editable) {
-        t.setFont(Font.font(font, fontSize));
-        t.setMinWidth(width);
-        t.setMaxWidth(width);
-        t.setAlignment(alignment);
-        t.setLayoutX(x);
-        t.setLayoutY(y);
-        t.setEditable(editable);
-    }*/
 }
 	
 	

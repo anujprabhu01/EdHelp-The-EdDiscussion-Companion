@@ -85,7 +85,7 @@ class DatabaseHelper {
 	}
 
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
-		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?)";
+		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(insertUser)) {
 			pstmt.setString(1, username);
 			pstmt.setString(2, password);
@@ -102,21 +102,95 @@ class DatabaseHelper {
 			
 			pstmt.executeUpdate();
 		}
-		System.out.print(gp360EdDisc_GUIdriver.USERNAME);
 	}
 	
 	public void finishSetupAccountDB(String email, String firstName, String middleName, String lastName, String prefName) throws SQLException {
-		//String query = "SELECT * FROM cse360users WHERE email = ? AND password = ? AND role = ?";
+		String user = gp360EdDisc_GUIdriver.USERNAME;
+		String query = "UPDATE cse360users SET email = ?, firstName = ?, middleName = ?, lastName = ?, prefName = ?, finishedSetup = ? WHERE username = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, email);
+			pstmt.setString(2, firstName);
+			pstmt.setString(3, middleName);
+			pstmt.setString(4, lastName);
+			pstmt.setString(5, prefName);
+			pstmt.setBoolean(6, true);
+			pstmt.setString(7, user);
+			pstmt.executeUpdate();
+		}
 	
 	}
 	
+	public boolean hasTwoOrMoreRoles() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+	    String query = "SELECT (CASE WHEN admin = true THEN 1 ELSE 0 END + " +
+	                   "CASE WHEN instructor = true THEN 1 ELSE 0 END + " +
+	                   "CASE WHEN student = true THEN 1 ELSE 0 END) AS roleCount " +
+	                   "FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                int roleCount = rs.getInt("roleCount");
+	                return roleCount >= 2;  // Return true if two or more roles are true
+	            }
+	        }
+	    }
 
-	public boolean login(String email, String password, String role) throws SQLException {
-		String query = "SELECT * FROM cse360users WHERE email = ? AND password = ? AND role = ?";
+	    return false;
+	
+	}
+	
+	public boolean getFinishSetup() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+		String query = "SELECT finishedSetup FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                // Check the value of finishedSetup
+	                boolean finishedSetup = rs.getBoolean("finishedSetup");
+	                // Return true if setup is not finished, otherwise false
+	                return finishedSetup;
+	            }
+	        }
+	    }
+	    return false;
+	    
+    }
+	
+	public String oneRoleReturn() throws SQLException {
+	    // Check if the user has more than one role using the hasTwoOrMoreRoles method
+	    if (!hasTwoOrMoreRoles()) {
+	    	String username = gp360EdDisc_GUIdriver.USERNAME;
+		    String query = "SELECT admin, instructor, student FROM cse360users WHERE username = ?";
+		    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+		        pstmt.setString(1, username);
+		        try (ResultSet rs = pstmt.executeQuery()) {
+		            if (rs.next()) {
+		                if (rs.getBoolean("admin")) {
+		                    return "admin";
+		                } else if (rs.getBoolean("instructor")) {
+		                    return "instructor";
+		                } else if (rs.getBoolean("student")) {
+		                    return "student";
+		                }
+		            }
+		        }
+		    } 
+	    }
+	    return null;
+	}
+    	
+
+	public boolean login(String username, String password) throws SQLException {
+		String query = "SELECT * FROM cse360users WHERE username = ? AND password = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-			pstmt.setString(1, email);
+			pstmt.setString(1, username);
 			pstmt.setString(2, password);
-			pstmt.setString(3, role);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				return rs.next();
 			}
