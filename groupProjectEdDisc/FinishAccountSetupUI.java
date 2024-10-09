@@ -1,5 +1,7 @@
 package groupProjectEdDisc;
 
+import java.sql.SQLException;
+
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -87,7 +89,12 @@ public class FinishAccountSetupUI {
         		label_textFieldEmpty.setVisible(true);
         		label_textFieldEmpty.setManaged(true);
         	} else {
-        		handleConfirmDetails(driver);
+        		try {
+        			handleConfirmDetails(driver);
+        		} catch (SQLException ex) {
+                    System.err.println("Error during account creation: " + ex.getMessage());
+                    ex.printStackTrace(); // Optionally, you can log or handle this further
+                }
             }
         });
         
@@ -101,8 +108,20 @@ public class FinishAccountSetupUI {
     /**********************************************************************************************
      * Helper Methods for Setting Up UI Elements
      **********************************************************************************************/
-	private void handleConfirmDetails(gp360EdDisc_GUIdriver driver) {
-		driver.loadAdminAccount();
+	private void handleConfirmDetails(gp360EdDisc_GUIdriver driver) throws SQLException {
+		gp360EdDisc_GUIdriver.getDBHelper().finishSetupAccountDB(text_email.getText(), text_Firstname.getText(), text_MiddleName.getText(), 
+			text_LastName.getText(), text_preFirst.getText());
+		if (gp360EdDisc_GUIdriver.getDBHelper().hasTwoOrMoreRoles()) {
+			driver.showPopupWindow();
+		}
+		else {
+			if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "admin") {
+				driver.loadAdminAccount();
+			}
+			else {
+				driver.loadUserAccount();
+			}
+		}
 		//driver.loadUserAccount();
 		//FIXME ADD CODE HERE to add details to the account in database
 		//If role == Admin

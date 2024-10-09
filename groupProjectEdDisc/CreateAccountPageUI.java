@@ -33,6 +33,10 @@ public class CreateAccountPageUI {
     private Label label_AccountStatus = new Label("");
     private Button btn_CreateAccount = new Button("Create Account");
     
+    private boolean admin = false;
+	private boolean instructor = false;
+	private boolean student = false;
+    
     private Label label_textFieldEmpty = new Label("please fill all required text fields");
 	
 	
@@ -91,6 +95,7 @@ public class CreateAccountPageUI {
                     ex.printStackTrace(); // Optionally, you can log or handle this further
                 }
             }
+            
         });
         
         theRoot.getChildren().addAll(label_ApplicationTitle, label_AccountCode, text_AccountCode,
@@ -105,16 +110,30 @@ public class CreateAccountPageUI {
      **********************************************************************************************/
 	private void handleCreateAccount(gp360EdDisc_GUIdriver driver) throws SQLException {
 		try {
-			//FIXME ADD CODE HERE to create the account in database
-			gp360EdDisc_GUIdriver.getDBHelper().register(text_Username.getText(), text_Password.getText(), "Admin");
+			admin = false;
+			instructor = false;
+			student = false;
+			if (text_AccountCode.getText().contains("1")) {//1 = admin 
+				admin = true;
+			}
+			if (text_AccountCode.getText().contains("2")) {//2 = instructor 
+				instructor = true;
+			}
+			if (text_AccountCode.getText().contains("3")) {//3 = student
+				student = true;
+			}
+			if (gp360EdDisc_GUIdriver.getDBHelper().isDatabaseEmpty()) {
+				admin = true;
+				instructor = false;
+				student = false;
+			}
+			gp360EdDisc_GUIdriver.getDBHelper().register(text_Username.getText(), text_Password.getText(), admin, instructor, student, false, false);
 			driver.loadloginPage();
-		} catch (SQLException e) {
-		System.err.println("Database error: " + e.getMessage());
-		e.printStackTrace();
-	}
-		finally {
-			//
 		}
+		finally {
+			
+		}
+		
 	}
 	
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {

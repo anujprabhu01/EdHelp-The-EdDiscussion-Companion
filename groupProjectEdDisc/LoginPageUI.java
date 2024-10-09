@@ -1,5 +1,7 @@
 package groupProjectEdDisc;
 
+import java.sql.SQLException;
+
 import javafx.geometry.Pos;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.Label;
@@ -67,7 +69,12 @@ public class LoginPageUI {
         		label_userPassEmpty.setVisible(true);
         		label_userPassEmpty.setManaged(true);
         	} else {
-                handleLogin(driver);
+        		try {
+                    handleLogin(driver); // Handle the account login here
+                } catch (SQLException ex) {
+                    System.err.println("Error during account creation: " + ex.getMessage());
+                    ex.printStackTrace(); // Optionally, you can log or handle this further
+                }
             }
         });
         
@@ -91,8 +98,37 @@ public class LoginPageUI {
     /**********************************************************************************************
      * Helper Methods for Setting Up UI Elements
      **********************************************************************************************/
-	private void handleLogin(gp360EdDisc_GUIdriver driver) {
-		driver.loadFinishAccountSetup(); //remove
+	private void handleLogin(gp360EdDisc_GUIdriver driver)  throws SQLException {
+//		System.out.print("IN!!!!!");
+//		System.out.print(text_Username.getText());
+//		System.out.print("\n");
+//		System.out.print(text_Password.getText());
+
+		if (gp360EdDisc_GUIdriver.getDBHelper().login(text_Username.getText(), text_Password.getText())) {
+			System.out.print("Login Successful!");
+			gp360EdDisc_GUIdriver.USERNAME = text_Username.getText();
+			if (!gp360EdDisc_GUIdriver.getDBHelper().getFinishSetup()) {
+				driver.loadFinishAccountSetup();
+				return;
+			} 
+			
+			if (gp360EdDisc_GUIdriver.getDBHelper().hasTwoOrMoreRoles()) {
+				driver.showPopupWindow();
+			}
+			else {
+				if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "admin") {
+					driver.loadAdminAccount();
+				}
+				else {
+					driver.loadUserAccount();
+				}
+			}
+		}
+		else {
+			//FIXME Login Credentials are incorrect
+		}
+		
+		
 		//If it is the users first time logging in call  *** driver.FinishAccountSetup() ***
 		//ADD CODE HERE USE SQL DATABASE to ensure account credentials and 
 		//Have a popup that asks the user which role they would like to login as before sending to account page; if only one role skip this and go straight to page

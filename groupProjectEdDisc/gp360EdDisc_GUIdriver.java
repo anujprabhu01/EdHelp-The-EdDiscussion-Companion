@@ -2,9 +2,17 @@ package groupProjectEdDisc;
 
 //JavaFX imports needed to support the Graphical User Interface
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import java.sql.SQLException;
 
 // H2 imports
 import java.sql.SQLException;
@@ -34,10 +42,11 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public final static double WINDOW_WIDTH = 500;
 	/** The height of the pop-up window for the user interface */
 	public final static double WINDOW_HEIGHT = 500;
+	public static String USERNAME = "";
 	
 	private Scene scene;
 	private Pane theRoot;
-	private boolean firstLogin = false;
+
 	
 	
 	
@@ -53,7 +62,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 		theStage.setScene(scene);						// Set the scene on the stage
 		
 		theStage.show();									// Show the stage to the user
-		if (firstLogin == true) { //FIXME Should check if database is empty
+		if (databaseHelper.isDatabaseEmpty()) { //FIXME Should check if database is empty
 			loadCreateAccountPage();
 		} else {
 			loadloginPage();
@@ -86,19 +95,50 @@ public class gp360EdDisc_GUIdriver extends Application {
 		AdminAccountPageUI adminAccountPage = new AdminAccountPageUI(theRoot, this);
 	}
 	
-public static DatabaseHelper getDBHelper() {
+	public void showPopupWindow() {
+	    Stage popupStage = new Stage();
+	    popupStage.initModality(Modality.APPLICATION_MODAL); // Block interaction with the main window
+	    popupStage.setTitle("");
+	    Label label_roleSelect = new Label("Select your role for this session");
+	    Button btn_Admin = new Button("Admin");
+	    Button btn_Instructor = new Button("Instructor");
+	    Button btn_Student = new Button("Student");
+	    popupStage.setOnCloseRequest(WindowEvent::consume);
+
+	    btn_Admin.setOnAction(e -> {
+	        popupStage.close(); // Close the pop-up
+	    });
+
+	    btn_Instructor.setOnAction(e -> {
+	    	popupStage.close(); // Close the pop-up
+	    });
+	    
+	    btn_Student.setOnAction(e -> {
+	       
+	        popupStage.close(); // Close the pop-up
+	    });
+	    
+	    HBox Buttonlayout = new HBox(10, btn_Student, btn_Admin, btn_Instructor);
+	    Buttonlayout.setAlignment(Pos.CENTER);
+
+	    VBox layout = new VBox(20, label_roleSelect, Buttonlayout); // 20 is the spacing between the label and buttons
+	    layout.setAlignment(Pos.CENTER);
+	    
+	    Scene popupScene = new Scene(layout, 350, 200);
+	    popupStage.setScene(popupScene);
+	    popupStage.showAndWait(); // Wait until the pop-up is closed
+	   }
+	public static DatabaseHelper getDBHelper() {
 		return databaseHelper;
 	}
 	
-	public static void main(String[] args) {
-		try {
-			// Start H2 console
+	public static void main(String[] args) {	
+		try { 
 			databaseHelper.startH2Console();
-			databaseHelper.connectToDatabase();  // Connect to the database
+			databaseHelper.connectToDatabase(); // Connect to the database
 			
-			launch(args);
-						
-		}  catch (SQLException e) {
+			launch(args);		
+		} catch (SQLException e) {
 			System.err.println("Database error: " + e.getMessage());
 			e.printStackTrace();
 		}
@@ -106,6 +146,7 @@ public static DatabaseHelper getDBHelper() {
 			System.out.println("Good Bye!!");
 			databaseHelper.closeConnection();
 			databaseHelper.stopH2Console();
-		}										// for all JavaFX applications using
+		}
+		
 	}		
 }
