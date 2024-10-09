@@ -30,6 +30,8 @@ public class FinishAccountSetupUI {
     
     private Label label_preFirst = new Label("Prefered First Name:");
     private TextField text_preFirst = new TextField();
+    
+    private Label label_textFieldEmpty = new Label("please fill all text fields");
 
     private Button btn_ConfirmDetails = new Button("Confirm Account Details");
 	
@@ -66,6 +68,11 @@ public class FinishAccountSetupUI {
                 Pos.BASELINE_LEFT, 10, 330);
         setupTextUI(text_preFirst, "Arial", 18, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 20,
                 Pos.BASELINE_LEFT, 10, 350, true);
+        
+     // FieldEmpty label
+        setupLabelUI(label_textFieldEmpty, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 10, 390, "red");
+        label_textFieldEmpty.setVisible(false);
+        label_textFieldEmpty.setManaged(false);
             
             
         // Add create account button
@@ -76,14 +83,19 @@ public class FinishAccountSetupUI {
             
         // Handle account creation attempt
         btn_ConfirmDetails.setOnAction(e -> {
-            handleConfirmDetails(driver);
+        	if (isTextFieldEmpty(text_email, text_Firstname, text_MiddleName, text_LastName, text_preFirst)) {
+        		label_textFieldEmpty.setVisible(true);
+        		label_textFieldEmpty.setManaged(true);
+        	} else {
+        		handleConfirmDetails(driver);
+            }
         });
         
         theRoot.getChildren().addAll(label_ApplicationTitle, label_email, text_email,
         		label_Firstname, text_Firstname, 
         		label_MiddleName, text_MiddleName, 
         		label_LastName, text_LastName,
-        		label_preFirst, text_preFirst);
+        		label_preFirst, text_preFirst, label_textFieldEmpty);
     }
 
     /**********************************************************************************************
@@ -106,6 +118,15 @@ public class FinishAccountSetupUI {
         l.setLayoutX(x);
         l.setLayoutY(y);
     }
+    
+    private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color) {
+        l.setFont(Font.font(font, fontSize));
+        l.setMinWidth(width);
+        l.setAlignment(alignment);
+        l.setLayoutX(x);
+        l.setLayoutY(y);
+        l.setStyle("-fx-text-fill: " + color + ";"); // set color of label
+    }
 
     private void setupTextUI(TextField t, String font, double fontSize, double width, Pos alignment, double x, double y, boolean editable) {
         t.setFont(Font.font(font, fontSize));
@@ -115,5 +136,18 @@ public class FinishAccountSetupUI {
         t.setLayoutX(x);
         t.setLayoutY(y);
         t.setEditable(editable);
+    }
+    
+    /**********************************************************************************************
+     * Other Helper Methods
+     **********************************************************************************************/
+    private boolean isTextFieldEmpty(TextField...fields) {
+    	boolean flag_userPassEmpty = false;
+    	for(TextField field : fields) {
+    		if(field.getText().isEmpty()) {
+    			flag_userPassEmpty = true;
+    		}
+    	}
+    	return flag_userPassEmpty;
     }
 }

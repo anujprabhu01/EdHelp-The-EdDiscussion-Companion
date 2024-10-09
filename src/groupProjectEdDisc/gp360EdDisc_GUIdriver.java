@@ -6,6 +6,12 @@ import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
+// H2 imports
+import java.sql.SQLException;
+
+// Scanner if needed
+import java.util.Scanner;
+
 /*******
  * <p>  Class </p>
  * 
@@ -20,6 +26,9 @@ import javafx.stage.Stage;
  */
 
 public class gp360EdDisc_GUIdriver extends Application {
+	
+	private static final DatabaseHelper databaseHelper = new DatabaseHelper();
+	// private static final Scanner scanner = new Scanner(System.in);
 	
 	/** The width of the pop-up window for the user interface */
 	public final static double WINDOW_WIDTH = 500;
@@ -77,7 +86,26 @@ public class gp360EdDisc_GUIdriver extends Application {
 		AdminAccountPageUI adminAccountPage = new AdminAccountPageUI(theRoot, this);
 	}
 	
-	public static void main(String[] args) {				// This method may not be required
-		launch(args);										// for all JavaFX applications using
+public static DatabaseHelper getDBHelper() {
+		return databaseHelper;
+	}
+	
+	public static void main(String[] args) {
+		try {
+			// Start H2 console
+			databaseHelper.startH2Console();
+			databaseHelper.connectToDatabase();  // Connect to the database
+			
+			launch(args);
+						
+		}  catch (SQLException e) {
+			System.err.println("Database error: " + e.getMessage());
+			e.printStackTrace();
+		}
+		finally {
+			System.out.println("Good Bye!!");
+			databaseHelper.closeConnection();
+			databaseHelper.stopH2Console();
+		}										// for all JavaFX applications using
 	}		
 }

@@ -1,6 +1,7 @@
 package groupProjectEdDisc;
 
 import javafx.geometry.Pos;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
@@ -20,11 +21,13 @@ public class LoginPageUI {
     private TextField text_Username = new TextField();
     
     private Label label_Password = new Label("Password:");
-    private TextField text_Password = new TextField();
+    private PasswordField text_Password = new PasswordField();
     
     private Label label_LoginStatus = new Label("");
     private Button btn_Login = new Button("Login");
     private Button btn_haveCode = new Button("Have a Code\nClick Here");
+    
+    private Label label_userPassEmpty = new Label("username/passoword is missing");
 	
 	
 	public LoginPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
@@ -47,6 +50,11 @@ public class LoginPageUI {
         setupLabelUI(label_LoginStatus, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
             Pos.BASELINE_LEFT, 10, 210);
         
+     // FieldEmpty label
+        setupLabelUI(label_userPassEmpty, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 10, 210, "red");
+        label_userPassEmpty.setVisible(false);
+        label_userPassEmpty.setManaged(false);
+        
      // Add login button
         btn_Login.setText("Login");
         btn_Login.setLayoutX(150);
@@ -55,7 +63,12 @@ public class LoginPageUI {
         
         // Handle login attempt
         btn_Login.setOnAction(e -> {
-            handleLogin(driver);
+        	if (isTextFieldEmpty(text_Username, text_Password)) {
+        		label_userPassEmpty.setVisible(true);
+        		label_userPassEmpty.setManaged(true);
+        	} else {
+                handleLogin(driver);
+            }
         });
         
         // Add Code button
@@ -72,7 +85,7 @@ public class LoginPageUI {
         
         // Adding the elements to the root pane
         theRoot.getChildren().addAll(label_ApplicationTitle, label_Username, text_Username, 
-            label_Password, text_Password, label_LoginStatus);
+            label_Password, text_Password, label_LoginStatus, label_userPassEmpty);
     }
 
     /**********************************************************************************************
@@ -92,6 +105,15 @@ public class LoginPageUI {
         l.setLayoutX(x);
         l.setLayoutY(y);
     }
+    
+    private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color) {
+        l.setFont(Font.font(font, fontSize));
+        l.setMinWidth(width);
+        l.setAlignment(alignment);
+        l.setLayoutX(x);
+        l.setLayoutY(y);
+        l.setStyle("-fx-text-fill: " + color + ";"); // set color of label
+    }
 
     private void setupTextUI(TextField t, String font, double fontSize, double width, Pos alignment, double x, double y, boolean editable) {
         t.setFont(Font.font(font, fontSize));
@@ -101,6 +123,19 @@ public class LoginPageUI {
         t.setLayoutX(x);
         t.setLayoutY(y);
         t.setEditable(editable);
+    }
+    
+    /**********************************************************************************************
+     * Other Helper Methods
+     **********************************************************************************************/
+    private boolean isTextFieldEmpty(TextField...fields) {
+    	boolean flag_userPassEmpty = false;
+    	for(TextField field : fields) {
+    		if(field.getText().isEmpty()) {
+    			flag_userPassEmpty = true;
+    		}
+    	}
+    	return flag_userPassEmpty;
     }
 }
 	
