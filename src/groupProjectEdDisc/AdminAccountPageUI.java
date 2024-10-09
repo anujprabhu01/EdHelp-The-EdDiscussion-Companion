@@ -11,11 +11,26 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.Scene;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
-
+import java.sql.SQLException;
+import java.util.Random;
 
 
 public class AdminAccountPageUI { 
+	
+	// Sam's code
+	private Stage deleteStage = new Stage();
+	private Label deletePopupLabel = new Label("Are you sure?");
+	private Button noConfirm = new Button("No");
+	private Button yesConfirm = new Button("Yes");
+	private VBox deletePopup = new VBox(10, deletePopupLabel, noConfirm, yesConfirm);
+	private Scene popupDeleteScene = new Scene(deletePopup, 250, 150);
+	
+	// Jake's code
 	private Label label_ApplicationTitle = new Label("Admin Account");
 	private Button btn_logOut = new Button("Log Out");
 	
@@ -104,7 +119,11 @@ public class AdminAccountPageUI {
             
         // Handle send invite
         btn_sendInvite.setOnAction(e -> {
+        	try {
         	handleSendInvite(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         });
         
         //Setup for reset account
@@ -144,7 +163,11 @@ public class AdminAccountPageUI {
             
         // Handle account creation attempt
         btn_Delete.setOnAction(e -> {
+        	try {
         	handleDeleteUser(driver);
+        	} catch(SQLException ex) {
+        		ex.printStackTrace();
+        	}
         });
         
         
@@ -224,19 +247,79 @@ public class AdminAccountPageUI {
     /**********************************************************************************************
      * Helper Methods for Setting Up UI Elements
      **********************************************************************************************/
-	private void handleSendInvite(gp360EdDisc_GUIdriver driver) {
-		//Send an invite to the user by making a pop up occur with random invite code 
+	private void handleSendInvite(gp360EdDisc_GUIdriver driver) throws SQLException {
+		//Send an invite to the user by making a pop up occur with random invite code
+		boolean isAdmin = check_Admin.isSelected();
+		boolean isStudent = check_student.isSelected();
+		boolean isInstructor = check_Instructor.isSelected();
+		
+		if(!isAdmin && !isStudent && !isInstructor) { //FIXME generate error label for admin that tells admin to select atleast one role
+			System.out.println("please select atleast one role");
+		}
+		else {
+			String code = generateRandomString();
+			
+			boolean success = gp360EdDisc_GUIdriver.getDBHelper().inviteUser(code, isAdmin, isInstructor, isStudent);
+			
+			if(success) {
+				check_Admin.setSelected(false);
+		        check_student.setSelected(false);
+		        check_Instructor.setSelected(false);
+		        
+		        text_emailInvite.setText("");
+			}
+			else { //unsuccessful invite query
+				System.out.println("unsuccessful invite");
+			}
+		}
 	}
 	
 	private void handleSendReset(gp360EdDisc_GUIdriver driver) {
 		//Send an Reset to the user by making a pop up occur with random one-time password 
 	}
 	
-	private void handleDeleteUser(gp360EdDisc_GUIdriver driver) {
+	private void handleDeleteUser(gp360EdDisc_GUIdriver driver) throws SQLException {
 		//Make a pop up occur that asks are you sure you want to delete, if yes delete the user from the database
-	}
+		//query if data base contains the textfield
+		//create pop up with yes/no buttons
+		// change to query
+		if(text_UserToDelete.getText().equals("")) { //FIXME implement label
+			System.out.println("enter username of associated user to delete first");
+		}
+		else {
+			//first, get username given by admin
+			String username = text_UserToDelete.getText();
+			
+			
+			deleteStage.setTitle("Are you sure?");
+			deleteStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
+			
+			noConfirm.setOnAction(e -> {
+				deleteStage.close();
+				driver.loadAdminAccount();
+			});
+			
+			yesConfirm.setOnAction(e -> {
+				boolean success = gp360EdDisc_GUIdriver.getDBHelper().deleteUser(username);
+				if(success) {
+					System.out.println("successful delete by admin");
+					deleteStage.close();
+					driver.loadAdminAccount();
+				}
+				else {
+					System.out.println("unsuccessful delete by admin");
+				}
+			});
+			deletePopup.setAlignment(Pos.CENTER);
+			
+			deleteStage.setScene(popupDeleteScene);
+			deleteStage.showAndWait();
+		}
+}
+
 	
 	private void handleLogOut(gp360EdDisc_GUIdriver driver) {
+		gp360EdDisc_GUIdriver.USERNAME = "";
 		driver.loadloginPage();
 	}
 	
@@ -250,6 +333,7 @@ public class AdminAccountPageUI {
 	
 	private void handleListUsers(gp360EdDisc_GUIdriver driver) {
 		//Make a new widow that contains a list of all users in the database
+		gp360EdDisc_GUIdriver.getDBHelper().listUserAccounts();
 	}
 	
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {
@@ -269,4 +353,26 @@ public class AdminAccountPageUI {
         t.setLayoutY(y);
         t.setEditable(editable);
     }
+    
+    /**********************************************************************************************
+     * Other Helper Methods
+     **********************************************************************************************/
+    public static String generateRandomString() {
+    	String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@+!";
+    	int LENGTH = 16; // Length of the random string
+    	
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(LENGTH);
+
+        for (int i = 0; i < LENGTH; i++) {
+            // Generate a random index
+            int index = random.nextInt(CHARACTERS.length());
+            // Append the character at the random index to the StringBuilder
+            sb.append(CHARACTERS.charAt(index));
+        }
+
+        return sb.toString();
+    }
+    
+    
 }
