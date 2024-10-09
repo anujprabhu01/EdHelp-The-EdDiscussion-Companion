@@ -47,7 +47,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	
 	private Scene scene;
 	private Pane theRoot;
-
+	private boolean firstLogin = false;
 	
 	
 	

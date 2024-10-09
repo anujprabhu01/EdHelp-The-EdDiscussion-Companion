@@ -7,7 +7,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import org.h2.tools.*;
+
 
 
 class DatabaseHelper {
@@ -23,8 +29,24 @@ class DatabaseHelper {
 	private Connection connection = null;
 	private Statement statement = null; 
 	//	PreparedStatement pstmt
+
+	// JDBC driver name and database URL 
+	static final String JDBC_DRIVER = "org.h2.Driver";   
+	static final String DB_URL = "jdbc:h2:~/firstDatabase";  
+
+	//  Database credentials 
+	static final String USER = "sa"; 
+	static final String PASS = ""; 
+	
+	private Connection connection = null;
+	private Statement statement = null; 
+	//	PreparedStatement pstmt
 	
 	private Server h2Console;
+	
+	
+	
+	public void startH2Console() {
 	
 	
 	
@@ -45,6 +67,7 @@ class DatabaseHelper {
         }
     }
     
+    
 	public void connectToDatabase() throws SQLException {
 		try {
 			Class.forName(JDBC_DRIVER); // Load the JDBC driver
@@ -59,6 +82,7 @@ class DatabaseHelper {
 
 	private void createTables() throws SQLException {
 		String userTable = "CREATE TABLE IF NOT EXISTS cse360users ("
+				+ "username VARCHAR(255) UNIQUE, "
 				+ "username VARCHAR(255) UNIQUE, "
 				+ "password VARCHAR(255), "
 				+ "email VARCHAR(255), "
@@ -96,9 +120,23 @@ class DatabaseHelper {
 
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
 		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
+		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(insertUser)) {
 			pstmt.setString(1, username);
+			pstmt.setString(1, username);
 			pstmt.setString(2, password);
+			pstmt.setString(3, "");
+			pstmt.setString(4, "");
+			pstmt.setString(5, "");
+			pstmt.setString(6, "");
+			pstmt.setString(7, "");
+			pstmt.setBoolean(8, admin);
+			pstmt.setBoolean(9, instructor);
+			pstmt.setBoolean(10, student);
+			pstmt.setBoolean(11, finishedSetup);
+			pstmt.setBoolean(12, needsPassReset);
+			
 			pstmt.setString(3, "");
 			pstmt.setString(4, "");
 			pstmt.setString(5, "");
@@ -142,6 +180,87 @@ class DatabaseHelper {
 		String query = "UPDATE cse360users SET email = ?, firstName = ?, middleName = ?, lastName = ?, prefName = ?, finishedSetup = ? WHERE username = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, email);
+			pstmt.setString(2, firstName);
+			pstmt.setString(3, middleName);
+			pstmt.setString(4, lastName);
+			pstmt.setString(5, prefName);
+			pstmt.setBoolean(6, true);
+			pstmt.setString(7, user);
+			pstmt.executeUpdate();
+		}
+	
+	}
+	
+	public boolean hasTwoOrMoreRoles() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+	    String query = "SELECT (CASE WHEN admin = true THEN 1 ELSE 0 END + " +
+	                   "CASE WHEN instructor = true THEN 1 ELSE 0 END + " +
+	                   "CASE WHEN student = true THEN 1 ELSE 0 END) AS roleCount " +
+	                   "FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                int roleCount = rs.getInt("roleCount");
+	                return roleCount >= 2;  // Return true if two or more roles are true
+	            }
+	        }
+	    }
+
+	    return false;
+	
+	}
+	
+	public boolean getFinishSetup() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+		String query = "SELECT finishedSetup FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                // Check the value of finishedSetup
+	                boolean finishedSetup = rs.getBoolean("finishedSetup");
+	                // Return true if setup is not finished, otherwise false
+	                return finishedSetup;
+	            }
+	        }
+	    }
+	    return false;
+	    
+    }
+	
+	public String oneRoleReturn() throws SQLException {
+	    // Check if the user has more than one role using the hasTwoOrMoreRoles method
+	    if (!hasTwoOrMoreRoles()) {
+	    	String username = gp360EdDisc_GUIdriver.USERNAME;
+		    String query = "SELECT admin, instructor, student FROM cse360users WHERE username = ?";
+		    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+		        pstmt.setString(1, username);
+		        try (ResultSet rs = pstmt.executeQuery()) {
+		            if (rs.next()) {
+		                if (rs.getBoolean("admin")) {
+		                    return "admin";
+		                } else if (rs.getBoolean("instructor")) {
+		                    return "instructor";
+		                } else if (rs.getBoolean("student")) {
+		                    return "student";
+		                }
+		            }
+		        }
+		    } 
+	    }
+	    return null;
+	}
+    	
+
+	public boolean login(String username, String password) throws SQLException {
+		String query = "SELECT * FROM cse360users WHERE username = ? AND password = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, username);
 			pstmt.setString(2, firstName);
 			pstmt.setString(3, middleName);
 			pstmt.setString(4, lastName);
