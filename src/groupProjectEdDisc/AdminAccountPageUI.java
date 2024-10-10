@@ -2,21 +2,28 @@ package groupProjectEdDisc;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Random;
 
 
@@ -29,6 +36,17 @@ public class AdminAccountPageUI {
 	private Button yesConfirm = new Button("Yes");
 	private VBox deletePopup = new VBox(10, deletePopupLabel, noConfirm, yesConfirm);
 	private Scene popupDeleteScene = new Scene(deletePopup, 250, 150);
+	
+	private Stage showStage = new Stage();
+	private Label showPopupLabel = new Label("Shown User");
+	private Button showBack = new Button("Back");
+	private VBox showVBox = new VBox(20, showPopupLabel, showBack);
+	private Scene showScene = new Scene(showVBox, 360, 100);
+	private Label label_usernameDoesNotExist = new Label("username does not exist");
+	
+	private Label label_selfAdmin = new Label("please select Admin for yourself");
+	private Label label_selectRoles = new Label("please select at least one checkbox");
+
 	
 	// Jake's code
 	private Label label_ApplicationTitle = new Label("Admin Account");
@@ -64,6 +82,10 @@ public class AdminAccountPageUI {
     private Label label_list = new Label("List Users");
     private Button btn_ListUsers = new Button("List All Users");
     
+    private Label label_atleastOneRole = new Label("please select at least one role to assign");
+    private Label label_usernameForDeletion = new Label("enter username of associated user to delete");
+
+    
 	
 	public AdminAccountPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
         // Setup for the application title at the top, centered
@@ -81,6 +103,14 @@ public class AdminAccountPageUI {
         btn_logOut.setOnAction(e -> {
         	handleLogOut(driver);
         });
+        
+        // set up label to inform admin that atleast one role has to be selected before inviting another user
+        setupLabelUI(label_atleastOneRole, "Arial", 12, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 250, 80);
+        label_atleastOneRole.setStyle("-fx-text-fill: red;"); // set color of label
+        label_atleastOneRole.setVisible(false);
+        label_atleastOneRole.setManaged(false);
+
         
         
         //Setup for Invite user label, email label and email text field
@@ -170,6 +200,13 @@ public class AdminAccountPageUI {
         	}
         });
         
+     // Setup label to delete user through username
+        setupLabelUI(label_usernameForDeletion, "Arial", 12, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 150, 255);
+        label_usernameForDeletion.setStyle("-fx-text-fill: red;"); // set color of label
+        label_usernameForDeletion.setVisible(false);
+        label_usernameForDeletion.setManaged(false);
+
         
       //Setup for Invite user label, email label and email text field
         setupLabelUI(label_AddOrRemoveRoles, "Arial", 18, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
@@ -239,9 +276,26 @@ public class AdminAccountPageUI {
         	handleListUsers(driver);
         });
         
+        
+        setupLabelUI(label_usernameDoesNotExist, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 428, "red");
+        label_usernameDoesNotExist.setVisible(false);
+        label_usernameDoesNotExist.setManaged(false);
+        //label_selfAdmin
+        setupLabelUI(label_selfAdmin, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 442, "red");
+        label_selfAdmin.setVisible(false);
+        label_selfAdmin.setManaged(false);
+        //label_selectRoles
+        setupLabelUI(label_selectRoles, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 456, "red");
+        label_selectRoles.setVisible(false);
+        label_selectRoles.setManaged(false);
+        
+        
+
+        
         theRoot.getChildren().addAll(label_ApplicationTitle ,label_InviteUserEmail, label_InviteUser, text_emailInvite, 
         		label_ResetAccount, text_emailReset, label_ResetUserEmail,label_DeleteAccount, label_DeleteUser, text_UserToDelete,
-        		label_AddOrRemoveRoles, label_AddorUser, text_AddorUsername, label_list);
+        		label_AddOrRemoveRoles, label_AddorUser, text_AddorUsername, label_list, label_usernameDoesNotExist, label_selfAdmin,
+        		label_selectRoles,label_usernameForDeletion, label_atleastOneRole);
     }
 
     /**********************************************************************************************
@@ -252,30 +306,70 @@ public class AdminAccountPageUI {
 		boolean isAdmin = check_Admin.isSelected();
 		boolean isStudent = check_student.isSelected();
 		boolean isInstructor = check_Instructor.isSelected();
+		String email = text_emailInvite.getText();
 		
 		if(!isAdmin && !isStudent && !isInstructor) { //FIXME generate error label for admin that tells admin to select atleast one role
 			System.out.println("please select atleast one role");
+			label_atleastOneRole.setVisible(true);
+			label_atleastOneRole.setManaged(true);
 		}
 		else {
 			String code = generateRandomString();
 			
 			boolean success = gp360EdDisc_GUIdriver.getDBHelper().inviteUser(code, isAdmin, isInstructor, isStudent);
 			
-			if(success) {
+			if (success) {
 				check_Admin.setSelected(false);
 		        check_student.setSelected(false);
 		        check_Instructor.setSelected(false);
 		        
 		        text_emailInvite.setText("");
-			}
-			else { //unsuccessful invite query
-				System.out.println("unsuccessful invite");
-			}
+		        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+		        alert.setTitle("Email Invite");
+		        alert.setHeaderText(null);
+		        alert.setContentText("This Message has been sent to " + email + "\nThis is a one time invite code to sign up for ed help: " + code);
+		        alert.showAndWait();
+		    } else {
+		        // Handle the case where the password update failed
+		        Alert alert = new Alert(Alert.AlertType.ERROR);
+		        alert.setTitle("Error");
+		        alert.setHeaderText("");
+		        alert.setContentText("Failed to generate one time one code\nPlease check the email and try again");
+		        alert.showAndWait();
+		    }
+			label_atleastOneRole.setVisible(false);
+			label_atleastOneRole.setManaged(false);
 		}
+		
 	}
-	
+////////////////////NEW FUNCTION JAKE
 	private void handleSendReset(gp360EdDisc_GUIdriver driver) {
-		//Send an Reset to the user by making a pop up occur with random one-time password 
+	    String otp = generateRandomString(); // Use your existing method to generate the OTP
+	    String email = text_emailReset.getText();
+	    boolean success = gp360EdDisc_GUIdriver.getDBHelper().setPassword(otp, email);
+	    
+	    LocalDateTime expirationTime = LocalDateTime.now().plus(1, ChronoUnit.HOURS);
+	    
+	    // Format the expiration time for display
+	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	    String formattedExpirationTime = expirationTime.format(formatter);
+
+
+	    if (success) {
+	        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+	        alert.setTitle("Password Reset");
+	        alert.setHeaderText(null);
+	        alert.setContentText("This Message has been sent to " + email + "\nA one-time password has been generated and set\nThe password is " + otp + 
+	        		"\nPlease login and reset your password before this password exipres on " + formattedExpirationTime);
+	        alert.showAndWait();
+	    } else {
+	        // Handle the case where the password update failed
+	        Alert alert = new Alert(Alert.AlertType.ERROR);
+	        alert.setTitle("Error");
+	        alert.setHeaderText("Failed to reset the password for user with email: " + email);
+	        alert.setContentText("Please check the email and try again.");
+	        alert.showAndWait();
+	    }
 	}
 	
 	private void handleDeleteUser(gp360EdDisc_GUIdriver driver) throws SQLException {
@@ -285,15 +379,19 @@ public class AdminAccountPageUI {
 		// change to query
 		if(text_UserToDelete.getText().equals("")) { //FIXME implement label
 			System.out.println("enter username of associated user to delete first");
+			label_usernameForDeletion.setVisible(true);
+	        label_usernameForDeletion.setManaged(true);
 		}
 		else {
+			label_usernameForDeletion.setVisible(false);
+	        label_usernameForDeletion.setManaged(false);
 			//first, get username given by admin
 			String username = text_UserToDelete.getText();
 			
 			
 			deleteStage.setTitle("Are you sure?");
 			deleteStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
-			
+			deleteStage.setOnCloseRequest(WindowEvent::consume);
 			noConfirm.setOnAction(e -> {
 				deleteStage.close();
 				driver.loadAdminAccount();
@@ -324,16 +422,121 @@ public class AdminAccountPageUI {
 	}
 	
 	private void handleShowRoles(gp360EdDisc_GUIdriver driver) {
-		//Check the boxes for the roles of the username inputted to text_AddorUsername
+		//check if user is in table
+		boolean showRole = false;
+		String AddorUsernameStr = text_AddorUsername.getText();
+		try {
+			showRole = gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(AddorUsernameStr);
+		}catch(SQLException se){
+			se.printStackTrace();
+		}
+		if(showRole) {
+			showStage.setTitle("Shown User");
+			showStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
+			showBack.setOnAction(e -> {
+				showStage.close();
+				driver.loadAdminAccount();
+			});
+			try {
+				//setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y)
+				showPopupLabel.setText(gp360EdDisc_GUIdriver.getDBHelper().getRolesForSet(AddorUsernameStr));
+				setupLabelUI(showPopupLabel, "Arial", 16, 300 - 10, Pos.TOP_CENTER, 75, 40);
+				showPopupLabel.setStyle("-fx-font-weight: bold");
+			}
+			catch(SQLException se){
+				se.printStackTrace();
+			}
+			showVBox.setAlignment(Pos.TOP_CENTER);
+			showStage.setScene(showScene);
+			showStage.showAndWait();
+		}
+		else {
+			//add label that says they arent in DB
+			System.out.print("Username not in database\n");
+			label_usernameDoesNotExist.setVisible(true);
+	        label_usernameDoesNotExist.setManaged(true);
+		}
 	}
 	
 	private void handleSetRoles(gp360EdDisc_GUIdriver driver) {
 		//Set the roles of the listed user in accordance with the checked boxes
+		String AddorUsernameStr2 = text_AddorUsername.getText();
+		boolean text = false;
+		boolean admin = false;
+		boolean student = false;
+		boolean instructor = false;
+		try {
+			text = gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(AddorUsernameStr2);
+		}catch(SQLException se){
+			se.printStackTrace();
+		}
+		if(text) {
+			if(check_AddorAdmin.isSelected() || check_Addorstudent.isSelected() || check_AddorInstructor.isSelected()) {
+				if(check_AddorAdmin.isSelected()) {
+					admin = true;
+				}
+				if(check_AddorInstructor.isSelected()) {
+					instructor = true;
+				}
+				if(check_Addorstudent.isSelected()) {
+					student = true;
+				}
+				if(AddorUsernameStr2.equals(gp360EdDisc_GUIdriver.USERNAME) && !admin) {
+					System.out.print("Cannot change Admin Status of Self");
+					label_selfAdmin.setVisible(true);
+					label_selfAdmin.setManaged(true);
+				}
+				else {
+					try {
+						gp360EdDisc_GUIdriver.getDBHelper().adminRoleSet(admin, instructor, student, AddorUsernameStr2);
+						System.out.print("Success in changing roles");
+						driver.loadAdminAccount();
+					}catch(SQLException se){
+						se.printStackTrace();
+					}
+				}
+			}else {
+				System.out.print("please select at least one checkbox\n");
+				//LABEL NEEDED HEEEEERRRREEEEEEEE
+				label_selectRoles.setVisible(true);
+				label_selectRoles.setManaged(true);
+			}
+		}
+		else {
+			System.out.print("Username not in database\n");
+			label_usernameDoesNotExist.setVisible(true);
+	        label_usernameDoesNotExist.setManaged(true);
+		}
 	}
 	
+////////////////////NEW FUNCTION JAKE
 	private void handleListUsers(gp360EdDisc_GUIdriver driver) {
-		//Make a new widow that contains a list of all users in the database
-		gp360EdDisc_GUIdriver.getDBHelper().listUserAccounts();
+	    // Fetch the list of user accounts as a string
+	    String userAccounts = gp360EdDisc_GUIdriver.getDBHelper().listUserAccounts();
+
+	    // Create a new Stage (window)
+	    Stage userListStage = new Stage();
+	    userListStage.setTitle("User Accounts");
+
+	    // Create a TextArea to display the user accounts
+	    TextArea textArea = new TextArea(userAccounts);
+	    textArea.setEditable(false); // Make it read-only
+	    textArea.setWrapText(true); // Wrap text if too long
+
+	    // Set the size of the TextArea
+	    textArea.setPrefSize(500, 400);
+
+	    // Create a scene and add the TextArea to it
+	    Scene scene = new Scene(new StackPane(textArea), 500, 400);
+
+	    // Set the scene to the Stage
+	    userListStage.setScene(scene);
+
+	    // Make sure this window doesn't block interaction with the main window
+	    userListStage.initModality(Modality.NONE); 
+
+	    // Show the new window
+	    userListStage.show();
 	}
 	
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {
@@ -353,6 +556,16 @@ public class AdminAccountPageUI {
         t.setLayoutY(y);
         t.setEditable(editable);
     }
+    
+    private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color) {
+        l.setFont(Font.font(font, fontSize));
+        l.setMinWidth(width);
+        l.setAlignment(alignment);
+        l.setLayoutX(x);
+        l.setLayoutY(y);
+        l.setStyle("-fx-text-fill: " + color + ";"); // set color of label
+    }
+
     
     /**********************************************************************************************
      * Other Helper Methods

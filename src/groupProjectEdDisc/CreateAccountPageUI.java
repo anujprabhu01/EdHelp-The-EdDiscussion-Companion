@@ -120,7 +120,6 @@ public class CreateAccountPageUI {
                 }
             }
             
-            
         });
         */
         
@@ -189,6 +188,16 @@ public class CreateAccountPageUI {
                 	label_passwordNotSame.setManaged(false);
             	}
             	else {
+            		if(gp360EdDisc_GUIdriver.getDBHelper().isDatabaseEmpty()) {
+            			admin = true;
+        				instructor = false;
+        				student = false;
+        				
+            			gp360EdDisc_GUIdriver.getDBHelper().register(text_Username.getText(), text_Password.getText(), admin, instructor, student, false, false);
+            			driver.loadloginPage();
+            			return;
+            			
+            		}
             		if(!gp360EdDisc_GUIdriver.getDBHelper().isInvCodeValid(text_AccountCode.getText())) {
             			System.out.println("invite code is invalid");
             		}
@@ -196,12 +205,6 @@ public class CreateAccountPageUI {
             			admin = gp360EdDisc_GUIdriver.getDBHelper().isAdminForInvCode(text_AccountCode.getText());
             			instructor =  gp360EdDisc_GUIdriver.getDBHelper().isInstructorForInvCode(text_AccountCode.getText());
             			student =  gp360EdDisc_GUIdriver.getDBHelper().isStudentForInvCode(text_AccountCode.getText());
-            			
-            			if (gp360EdDisc_GUIdriver.getDBHelper().isDatabaseEmpty()) {
-            				admin = true;
-            				instructor = false;
-            				student = false;
-            			}
             			/*
             			 * if a user is creating an account with a code (new account), then:
             			 * 		they have not finished setting up their account
@@ -215,7 +218,6 @@ public class CreateAccountPageUI {
             	}
             }
 		}
-		
 		
 	}
 	

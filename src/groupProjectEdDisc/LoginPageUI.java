@@ -119,6 +119,11 @@ public class LoginPageUI {
 		if (gp360EdDisc_GUIdriver.getDBHelper().login(text_Username.getText(), text_Password.getText())) {
 			System.out.println("Login Successful!");
 			gp360EdDisc_GUIdriver.USERNAME = text_Username.getText();
+			/////This is NEWW JAKE
+			if (gp360EdDisc_GUIdriver.getDBHelper().getNeedPassReset()) {
+				driver.showPassResetPOP();
+			}
+			
 			if (!gp360EdDisc_GUIdriver.getDBHelper().getFinishSetup()) {
 				driver.loadFinishAccountSetup();
 				return;
