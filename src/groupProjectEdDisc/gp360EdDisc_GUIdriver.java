@@ -13,6 +13,9 @@ import javafx.stage.WindowEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import java.sql.SQLException;
+//ADDED THIS JAKE
+import javafx.scene.control.TextField;
+
 
 //H2 imports
 import java.sql.SQLException;
@@ -47,7 +50,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	
 	private Scene scene;
 	private Pane theRoot;
-	private boolean firstLogin = false;
+
 	
 	
 	
@@ -96,35 +99,113 @@ public class gp360EdDisc_GUIdriver extends Application {
 		AdminAccountPageUI adminAccountPage = new AdminAccountPageUI(theRoot, this);
 	}
 	
+	public void loadArticleAPage() {
+		theRoot.getChildren().clear();
+		ArticleAPageUI articleAPage = new ArticleAPageUI(theRoot, this);
+	}
+	
 	public void showPopupWindow() {
+		try {
+			Stage popupStage = new Stage();
+	        popupStage.initModality(Modality.APPLICATION_MODAL); // Block interaction with the main window
+	        popupStage.setTitle("");
+	        Label label_roleSelect = new Label("Select your role for this session");
+
+	        Button btn_Admin = new Button("Admin");
+	        Button btn_Instructor = new Button("Instructor");
+	        Button btn_Student = new Button("Student");
+
+	        // Event handling should be set before calling showAndWait
+	        btn_Admin.setOnAction(e -> {
+	            loadAdminAccount();
+	            popupStage.close(); // Close the pop-up
+	        });
+
+	        btn_Instructor.setOnAction(e -> {
+	            loadUserAccount();
+	            popupStage.close(); // Close the pop-up
+	        });
+
+	        btn_Student.setOnAction(e -> {
+	            loadUserAccount();
+	            popupStage.close(); // Close the pop-up
+	        });
+
+	        HBox buttonLayout = new HBox(10, btn_Student, btn_Admin, btn_Instructor);
+	        buttonLayout.setAlignment(Pos.CENTER);
+
+	        VBox layout = new VBox(20, label_roleSelect, buttonLayout); // 20 is the spacing between the label and buttons
+	        layout.setAlignment(Pos.CENTER);
+
+	        Scene popupScene = new Scene(layout, 350, 200);
+	        popupStage.setScene(popupScene);
+
+	        // Setup visibility based on roles (after creating the layout)
+	        btn_Admin.setVisible(false);
+	        btn_Admin.setManaged(false);
+
+	        btn_Instructor.setVisible(false);
+	        btn_Instructor.setManaged(false);
+
+	        btn_Student.setVisible(false);
+	        btn_Student.setManaged(false);
+
+	        if (getDBHelper().isAdminForUsers(USERNAME)) {
+	            btn_Admin.setVisible(true);
+	            btn_Admin.setManaged(true);
+	        }
+	        if (getDBHelper().isInstructorForUsers(USERNAME)) {
+	            btn_Instructor.setVisible(true);
+	            btn_Instructor.setManaged(true);
+	        }
+	        if (getDBHelper().isStudentForUsers(USERNAME)) {
+	            btn_Student.setVisible(true);
+	            btn_Student.setManaged(true);
+	        }
+
+	        // Show and wait should be called after everything is set
+	        popupStage.showAndWait(); // Wait until the pop-up is closed
+		} catch(SQLException ex) {
+			ex.printStackTrace();
+		}
+
+	   }
+	
+	public void showPassResetPOP() {
 	    Stage popupStage = new Stage();
 	    popupStage.initModality(Modality.APPLICATION_MODAL); // Block interaction with the main window
-	    popupStage.setTitle("");
-	    Label label_roleSelect = new Label("Select your role for this session");
-	    Button btn_Admin = new Button("Admin");
-	    Button btn_Instructor = new Button("Instructor");
-	    Button btn_Student = new Button("Student");
+	    popupStage.setTitle("Reset your password");
+	    Label label_enterNewPass = new Label("Enter new Password:");
+	    TextField text_newPass = new TextField();
+	    Label label_confirmNewPass = new Label("Re-enter new Password:");
+	    TextField text_confirmednewPass = new TextField();
+	    Button btn_confirm = new Button();
+	    Label label_passwordNotSame = new Label("passwords do not match");
+	    label_passwordNotSame.setStyle("-fx-text-fill: " + "red" + ";");
+	    label_passwordNotSame.setVisible(false);
+	    label_passwordNotSame.setManaged(false);
 	    popupStage.setOnCloseRequest(WindowEvent::consume);
 
-	    btn_Admin.setOnAction(e -> {
-	    	loadAdminAccount();
-	        popupStage.close(); // Close the pop-up
+	    btn_confirm.setOnAction(e -> {
+	    	Boolean equal = arePasswordsEqual(text_newPass, text_confirmednewPass);
+	    	if (equal) {
+	    		databaseHelper.setPasswordWithUSER(text_newPass.getText());
+	    		popupStage.close(); // Close the pop-up
+	    	}
+	    	else {
+	    		label_passwordNotSame.setVisible(true);
+	    	    label_passwordNotSame.setManaged(true);
+	    		
+	    		
+	    	}  
 	    });
-
-	    btn_Instructor.setOnAction(e -> {
-	    	loadUserAccount();
-	    	popupStage.close(); // Close the pop-up
-	    });
+	    btn_confirm.setText("Login");
 	    
-	    btn_Student.setOnAction(e -> {
-	    	loadUserAccount();
-	        popupStage.close(); // Close the pop-up
-	    });
 	    
-	    HBox Buttonlayout = new HBox(10, btn_Student, btn_Admin, btn_Instructor);
-	    Buttonlayout.setAlignment(Pos.CENTER);
-
-	    VBox layout = new VBox(20, label_roleSelect, Buttonlayout); // 20 is the spacing between the label and buttons
+	    text_newPass.setMaxWidth(175);
+	    text_confirmednewPass.setMaxWidth(175);
+	    
+	    VBox layout = new VBox(15, label_enterNewPass, text_newPass, label_confirmNewPass, text_confirmednewPass, label_passwordNotSame, btn_confirm); // 20 is the spacing between the label and buttons
 	    layout.setAlignment(Pos.CENTER);
 	    
 	    Scene popupScene = new Scene(layout, 350, 200);
@@ -132,10 +213,89 @@ public class gp360EdDisc_GUIdriver extends Application {
 	    popupStage.showAndWait(); // Wait until the pop-up is closed
 	   }
 	
+		
+	public void showMenuPopUp() {
+		try {
+			Stage popupStage = new Stage();
+	        popupStage.initModality(Modality.APPLICATION_MODAL); // Block interaction with the main window
+	        popupStage.setTitle("");
+	        Label label_roleSelect = new Label("Select a page");
+
+	        Button btn_Article = new Button("Article Manager");
+	        Button btn_Account = new Button("Account Manager");
+	        
+
+	        // Event handling should be set before calling showAndWait
+	        btn_Account.setOnAction(e -> {
+	            loadAdminAccount();
+	            popupStage.close(); // Close the pop-up
+	        });
+
+	        btn_Article.setOnAction(e -> {
+	            loadArticleAPage();
+	            popupStage.close(); // Close the pop-up
+	        });
+
+	        HBox buttonLayout = new HBox(10, btn_Account, btn_Article);
+	        buttonLayout.setAlignment(Pos.CENTER);
+
+	        VBox layout = new VBox(20, label_roleSelect, buttonLayout); // 20 is the spacing between the label and buttons
+	        layout.setAlignment(Pos.CENTER);
+
+	        Scene popupScene = new Scene(layout, 350, 200);
+	        popupStage.setScene(popupScene);
+	        
+	        // Setup visibility based on roles (after creating the layout)
+	        btn_Account.setVisible(false);
+	        btn_Account.setManaged(false);
+
+	        btn_Article.setVisible(false);
+	        btn_Article.setManaged(false);
+
+	        if (getDBHelper().isAdminForUsers(USERNAME)) {
+	        	btn_Article.setVisible(true);
+	        	btn_Article.setManaged(true);
+	        	btn_Account.setVisible(true);
+	        	btn_Account.setManaged(true);
+	        }
+	        if (getDBHelper().isInstructorForUsers(USERNAME)) {
+	        	btn_Article.setVisible(true);
+	        	btn_Article.setManaged(true);
+	        }
+
+	        // Show and wait should be called after everything is set
+	        popupStage.showAndWait(); // Wait until the pop-up is closed
+		} catch(SQLException ex) {
+			ex.printStackTrace();
+		}
+	}
 	
 	public static DatabaseHelper getDBHelper() {
 		return databaseHelper;
 	}
+	
+	private boolean arePasswordsEqual(TextField pass, TextField reenterPass) {
+    	char[] charArray1;
+        char[] charArray2;
+        boolean passEqual;
+        
+    	charArray1 = pass.getText().toCharArray();
+        charArray2 = reenterPass.getText().toCharArray();
+        passEqual = true;
+        // Compare the lengths first for quick check
+        if (charArray1.length != charArray2.length) {
+            passEqual = false;
+        }
+        else { //if lengths of passwords are equal
+        	for(int i = 0; i < charArray1.length; i++) {
+            	if(charArray1[i] != charArray2[i]) { // if characters do not match
+            		passEqual = false;
+            		break;
+            	}
+            }
+        }
+        return passEqual;
+    }
 	
 	public static void main(String[] args) {	
 		try { 

@@ -49,7 +49,6 @@ public class LoginPageUI {
             Pos.BASELINE_LEFT, 10, 130);
         setupTextUI(text_Password, "Arial", 18, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 20,
             Pos.BASELINE_LEFT, 10, 150, true);
-        
         /*
         // Status Label
         setupLabelUI(label_LoginStatus, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
@@ -119,6 +118,11 @@ public class LoginPageUI {
 		if (gp360EdDisc_GUIdriver.getDBHelper().login(text_Username.getText(), text_Password.getText())) {
 			System.out.println("Login Successful!");
 			gp360EdDisc_GUIdriver.USERNAME = text_Username.getText();
+			/////This is NEWW JAKE
+			if (gp360EdDisc_GUIdriver.getDBHelper().getNeedPassReset()) {
+				driver.showPassResetPOP();
+			}
+			
 			if (!gp360EdDisc_GUIdriver.getDBHelper().getFinishSetup()) {
 				driver.loadFinishAccountSetup();
 				return;
@@ -130,6 +134,9 @@ public class LoginPageUI {
 			else {
 				if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "admin") {
 					driver.loadAdminAccount();
+				}
+				else if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "instructor"){
+					driver.loadArticleAPage();
 				}
 				else {
 					driver.loadUserAccount();

@@ -1,14 +1,11 @@
 package groupProjectEdDisc;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.*;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-
 import org.h2.tools.*;
-
 
 
 class DatabaseHelper {
@@ -46,7 +43,6 @@ class DatabaseHelper {
         }
     }
     
-    
 	public void connectToDatabase() throws SQLException {
 		try {
 			Class.forName(JDBC_DRIVER); // Load the JDBC driver
@@ -61,7 +57,6 @@ class DatabaseHelper {
 
 	private void createTables() throws SQLException {
 		String userTable = "CREATE TABLE IF NOT EXISTS cse360users ("
-				+ "username VARCHAR(255) UNIQUE, "
 				+ "username VARCHAR(255) UNIQUE, "
 				+ "password VARCHAR(255), "
 				+ "email VARCHAR(255), "
@@ -82,8 +77,21 @@ class DatabaseHelper {
 	            + "role_student BOOLEAN, "
 	            + "is_used BOOLEAN DEFAULT FALSE)";
 		
+		String articleTable = "CREATE TABLE IF NOT EXISTS articles ("
+				+ "id LONG AUTO_INCREMENT PRIMARY KEY, "
+				+ "level VARCHAR(255), "
+				+ "eclipseGroup BOOLEAN, "
+				+ "intlleliJGroup BOOLEAN, "
+				+ "permissions VARCHAR(255), "
+				+ "title VARCHAR(255), "
+				+ "descriptor VARCHAR(255), "
+				+ "keywords VARCHAR(255), "
+				+ "body VARCHAR(255), "
+				+ "reference VARCHAR(255))";
+			
 		statement.execute(userTable);
 		statement.execute(invitationTable);
+		statement.execute(articleTable);
 	}
 
 
@@ -96,24 +104,12 @@ class DatabaseHelper {
 		}
 		return true;
 	}
-	
+
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
 		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(insertUser)) {
 			pstmt.setString(1, username);
-			pstmt.setString(1, username);
 			pstmt.setString(2, password);
-			pstmt.setString(3, "");
-			pstmt.setString(4, "");
-			pstmt.setString(5, "");
-			pstmt.setString(6, "");
-			pstmt.setString(7, "");
-			pstmt.setBoolean(8, admin);
-			pstmt.setBoolean(9, instructor);
-			pstmt.setBoolean(10, student);
-			pstmt.setBoolean(11, finishedSetup);
-			pstmt.setBoolean(12, needsPassReset);
-			
 			pstmt.setString(3, "");
 			pstmt.setString(4, "");
 			pstmt.setString(5, "");
@@ -238,15 +234,11 @@ class DatabaseHelper {
 		String query = "SELECT * FROM cse360users WHERE username = ? AND password = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, username);
-			pstmt.setString(2, firstName);
-			pstmt.setString(3, middleName);
-			pstmt.setString(4, lastName);
-			pstmt.setString(5, prefName);
-			pstmt.setBoolean(6, true);
-			pstmt.setString(7, user);
-			pstmt.executeUpdate();
+			pstmt.setString(2, password);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				return rs.next();
+			}
 		}
-	
 	}
 	
 	public boolean doesUserExist(String email) {
@@ -352,46 +344,58 @@ class DatabaseHelper {
 	        return false; // Return false if an error occurs
 	    }
 	}
-
-	public void displayUsersByAdmin() throws SQLException{
-		String sql = "SELECT * FROM cse360users"; 
-		Statement stmt = connection.createStatement();
-		ResultSet rs = stmt.executeQuery(sql); 
-
-		while(rs.next()) { 
-			// Retrieve by column name 
-			int id  = rs.getInt("id"); 
-			String  email = rs.getString("email"); 
-			String password = rs.getString("password"); 
-			String role = rs.getString("role");  
-
-			// Display values 
-			System.out.print("ID: " + id); 
-			System.out.print(", Age: " + email); 
-			System.out.print(", First: " + password); 
-			System.out.println(", Last: " + role); 
-		} 
+////////////////////NEW FUNCTION JAKE
+	public boolean setPassword(String newPass, String email) {
+		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE email = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, newPass);
+			pstmt.setBoolean(2, true);
+			pstmt.setString(3, email);
+			int affectedRows = pstmt.executeUpdate();
+	        return affectedRows > 0;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false; // Return false if an error occurs
+		}
 	}
 	
-	public void displayUsersByUser() throws SQLException{
-		String sql = "SELECT * FROM cse360users"; 
-		Statement stmt = connection.createStatement();
-		ResultSet rs = stmt.executeQuery(sql); 
-
-		while(rs.next()) { 
-			// Retrieve by column name 
-			int id  = rs.getInt("id"); 
-			String  email = rs.getString("email"); 
-			String password = rs.getString("password"); 
-			String role = rs.getString("role");  
-
-			// Display values 
-			System.out.print("ID: " + id); 
-			System.out.print(", Age: " + email); 
-			System.out.print(", First: " + password); 
-			System.out.println(", Last: " + role); 
-		} 
+	public boolean setPasswordWithUSER(String newPass) {
+		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE username = ?";
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, newPass);
+			pstmt.setBoolean(2, false);
+			pstmt.setString(3, username);
+			int affectedRows = pstmt.executeUpdate();
+	        return affectedRows > 0;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false; // Return false if an error occurs
+		}
 	}
+	
+	
+	public boolean getNeedPassReset() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+		String query = "SELECT needsPassReset FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                // Check the value of finishedSetup
+	                boolean needsPassReset = rs.getBoolean("needsPassReset");
+	                // Return true if setup is not finished, otherwise false
+	                return needsPassReset;
+	            }
+	        }
+	    }
+	    return false;
+	    
+    }
 	
 	public boolean deleteUser(String username) {
 	    String deleteSQL = "DELETE FROM cse360users WHERE username = ?";
@@ -406,14 +410,15 @@ class DatabaseHelper {
 	        return false; // Return false if an error occurs
 	    }
 	}
-	
-	public void listUserAccounts() {
+////////////////////Changed FUNCTION JAKE
+	public String listUserAccounts() {
 	    String query = "SELECT username, firstName, lastName, admin, instructor, student FROM cse360users";
-	    
+	    StringBuilder result = new StringBuilder();
+
 	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 	        ResultSet rs = pstmt.executeQuery();
 
-	        System.out.println("User Accounts:");
+	        result.append("User Accounts:\n");
 	        while (rs.next()) {
 	            String username = rs.getString("username");
 	            String firstName = rs.getString("firstName");
@@ -432,16 +437,170 @@ class DatabaseHelper {
 	                roles.append("Student ");
 	            }
 
-	            // Display the user account details
-	            System.out.println("Username: " + username + ", Name: " + fullName + ", Roles: " + roles.toString().trim());
+	            // Append user account details to the result StringBuilder
+	            result.append("Username: ").append(username)
+	                  .append(", Name: ").append(fullName)
+	                  .append(", Roles: ").append(roles.toString().trim())
+	                  .append("\n");
 	        }
 	    } catch (SQLException e) {
 	        e.printStackTrace();
 	    }
+
+	    return result.toString();
+	}
+////////////
+	public String getRolesForSet(String username) throws SQLException{
+		String query = "SELECT admin, instructor, student FROM cse360users WHERE username = ?";
+		String getRolesSQL = "Username: " + username + "\nAdmin: ";
+		
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                if (rs.getBoolean("admin")) {
+	                	getRolesSQL += "True, Instructor: ";
+	                } else {
+	                	getRolesSQL += "False, Instructor: ";
+	                }
+	                if (rs.getBoolean("instructor")) {
+	                	getRolesSQL += "True, Student: ";
+	                } else {
+	                	getRolesSQL += "False, Student: ";
+	                }
+	                if (rs.getBoolean("student")) {
+	                	getRolesSQL += "True";
+	                }
+	                else {
+	                	getRolesSQL += "False";
+	                }
+	            }
+	        }
+	    }
+	    return getRolesSQL;
+	}
+	
+	public void adminRoleSet(boolean admin, boolean instructor, boolean student, String username) throws SQLException {
+		String query = "UPDATE cse360users SET admin = ?, instructor = ?, student = ? WHERE username = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setBoolean(1, admin);
+			pstmt.setBoolean(2, instructor);
+			pstmt.setBoolean(3, student);
+			pstmt.setString(4, username);
+			pstmt.executeUpdate();
+		}
 	}
 
 
+	public boolean isAdminForUsers(String user_username) throws SQLException {
+	    String query = "SELECT admin FROM cse360users WHERE username = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, user_username);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("admin"); // Returns true if role_admin is true, else false
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false; // If an error occurs or code doesn't exist, return false
+	}
 
+	public boolean isInstructorForUsers(String user_username) throws SQLException {
+	    String query = "SELECT instructor FROM cse360users WHERE username = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, user_username);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("instructor"); // Returns true if role_admin is true, else false
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false; // If an error occurs or code doesn't exist, return false
+	}
+
+	public boolean isStudentForUsers(String user_username) throws SQLException {
+	    String query = "SELECT student FROM cse360users WHERE username = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, user_username);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("student"); // Returns true if role_admin is true, else false
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false; // If an error occurs or code doesn't exist, return false
+	}
+	
+	//ARTICLES
+	public void addArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references ) throws Exception {
+		String query = "INSERT INTO articles (id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, references) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setInt(1, id);
+			pstmt.setString(2, level);
+			pstmt.setBoolean(3, eclipseGroup);
+			pstmt.setBoolean(4, intelliJGroup);
+			pstmt.setString(5, permissions);
+			pstmt.setString(6, title);
+			pstmt.setString(7, descriptor);
+			pstmt.setString(8, keywords);
+			pstmt.setString(9, body);
+			pstmt.setString(10, references);
+			
+			pstmt.executeUpdate();
+		}
+	}
+	
+	public void updateArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references) throws Exception {
+			// SQL query for updating an article by ID
+			String query = "UPDATE articles SET title = ?, level = ?, eclipseGroup = ?, intelliJGroup = ?, permissions = ?, descriptor = ?, keywords = ?, body = ?, references = ? WHERE id = ?";
+			try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			// Set values for each parameter in the SQL query
+			pstmt.setString(1, title);
+			pstmt.setString(2, level);
+			pstmt.setBoolean(3, eclipseGroup);
+			pstmt.setBoolean(4, intelliJGroup);
+			pstmt.setString(5, permissions);
+			pstmt.setString(6, descriptor);
+			pstmt.setString(7, keywords);
+			pstmt.setString(8, body);
+			pstmt.setString(9, references);
+			pstmt.setInt(10, id);  // The article ID goes at the end (WHERE clause)
+			}
+	}
+	
+	//Backs up the database to a specified file name
+		public void backupDatabase(String filename) throws Exception {
+	        String query = "SELECT id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, references FROM articles";
+	        try (BufferedWriter w = new BufferedWriter(new FileWriter(filename)); //uses BufferedWriter to write to file
+	        	PreparedStatement pstmt = connection.prepareStatement(query);
+	            ResultSet rs = pstmt.executeQuery()) {
+	        	
+	        	while (rs.next()) {
+	        		//grabing each value and putting in String
+	        		int id = rs.getInt("id");
+	                String level = rs.getString("level");
+	                boolean eclipse = rs.getBoolean("eclipseGroup");
+	                boolean intellij = rs.getBoolean("intelliJGroup");
+	                String permissions = rs.getString("permissions");
+	                String title = rs.getString("title");
+	                String descriptor = rs.getString("descriptor");
+	                String keywords = rs.getString("keywords");
+	                String body = rs.getString("body");
+	                String references = rs.getString("references");
+	                
+	                w.write(String.format("%d,%s,%b,%b,%s,%s,%s,%s,%s,%s", id, level, eclipse, intellij, permissions, title, descriptor, keywords, body, references)); //Writing into file in comma delimited format
+	                w.newLine();
+	        	}
+	        }
+	         catch (IOException | SQLException e) {
+	        	 e.printStackTrace();
+	         }
+		}
+	
+	
 	public void clearTable() throws SQLException {
 	    String query = "DROP TABLE cse360users"; // or "TRUNCATE TABLE cse360users";
 	    try (Statement stmt = connection.createStatement()) {

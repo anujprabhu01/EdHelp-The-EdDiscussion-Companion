@@ -118,6 +118,9 @@ public class FinishAccountSetupUI {
 			if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "admin") {
 				driver.loadAdminAccount();
 			}
+			else if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "instructor"){
+				driver.loadArticleAPage();
+			}
 			else {
 				driver.loadUserAccount();
 			}
