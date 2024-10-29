@@ -270,6 +270,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 		}
 	}
 	
+	
 	public static DatabaseHelper getDBHelper() {
 		return databaseHelper;
 	}

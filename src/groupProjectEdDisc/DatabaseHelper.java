@@ -105,6 +105,7 @@ class DatabaseHelper {
 		return true;
 	}
 
+
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
 		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(insertUser)) {
@@ -234,6 +235,11 @@ class DatabaseHelper {
 		String query = "SELECT * FROM cse360users WHERE username = ? AND password = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, username);
+			pstmt.setString(2, password);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				return rs.next();
+			}
+		}
 			pstmt.setString(2, password);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				return rs.next();
@@ -396,6 +402,58 @@ class DatabaseHelper {
 	    return false;
 	    
     }
+////////////////////NEW FUNCTION JAKE
+	public boolean setPassword(String newPass, String email) {
+		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE email = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, newPass);
+			pstmt.setBoolean(2, true);
+			pstmt.setString(3, email);
+			int affectedRows = pstmt.executeUpdate();
+	        return affectedRows > 0;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false; // Return false if an error occurs
+		}
+	}
+	
+	public boolean setPasswordWithUSER(String newPass) {
+		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE username = ?";
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, newPass);
+			pstmt.setBoolean(2, false);
+			pstmt.setString(3, username);
+			int affectedRows = pstmt.executeUpdate();
+	        return affectedRows > 0;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false; // Return false if an error occurs
+		}
+	}
+	
+	
+	public boolean getNeedPassReset() throws SQLException {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	   
+		String query = "SELECT needsPassReset FROM cse360users WHERE username = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                // Check the value of finishedSetup
+	                boolean needsPassReset = rs.getBoolean("needsPassReset");
+	                // Return true if setup is not finished, otherwise false
+	                return needsPassReset;
+	            }
+	        }
+	    }
+	    return false;
+	    
+    }
 	
 	public boolean deleteUser(String username) {
 	    String deleteSQL = "DELETE FROM cse360users WHERE username = ?";
@@ -412,12 +470,17 @@ class DatabaseHelper {
 	}
 ////////////////////Changed FUNCTION JAKE
 	public String listUserAccounts() {
+////////////////////Changed FUNCTION JAKE
+	public String listUserAccounts() {
 	    String query = "SELECT username, firstName, lastName, admin, instructor, student FROM cse360users";
+	    StringBuilder result = new StringBuilder();
+
 	    StringBuilder result = new StringBuilder();
 
 	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 	        ResultSet rs = pstmt.executeQuery();
 
+	        result.append("User Accounts:\n");
 	        result.append("User Accounts:\n");
 	        while (rs.next()) {
 	            String username = rs.getString("username");
