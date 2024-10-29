@@ -1,9 +1,13 @@
 package groupProjectEdDisc;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -12,6 +16,7 @@ import javafx.scene.text.FontPosture;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.Scene;
@@ -54,6 +59,8 @@ public class ArticleAPageUI {
     private Button btn_backupToFile = new Button("Backup to File");
 	private Button btn_RestoreToBackup = new Button("Restore to Backup");
 	private Button btn_MergeFromBackup = new Button("Merge from Backup");
+	private Label label_noFile = new Label("Please enter a filename");
+	
 	
 	public ArticleAPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
 		// Setup for the application title at the top, centered
@@ -209,6 +216,10 @@ public class ArticleAPageUI {
                 Pos.BASELINE_LEFT, 20, 310, true);
         text_ID.maxHeight(20);
         
+        setupLabelUI(label_noFile, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 20, 355, "red");
+        label_noFile.setVisible(false);
+        label_noFile.setManaged(false);
+        
         btn_backupToFile.setText("Backup");
         btn_backupToFile.setLayoutX(180);
         btn_backupToFile.setLayoutY(312);
@@ -253,7 +264,7 @@ public class ArticleAPageUI {
         
         
         theRoot.getChildren().addAll(label_ApplicationTitle ,label_createArticle, label_updateArticle, label_articleID, text_ID, label_listArticles, 
-        		label_BackupandRestoreArticles, label_fileName, text_filename);
+        		label_BackupandRestoreArticles, label_fileName, text_filename, label_noFile);
         
 	    
 	}
@@ -266,7 +277,146 @@ public class ArticleAPageUI {
 	}
 	
 	private void handleCreateArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
-		
+		Stage createArticleStage = new Stage();  // New stage for the popup
+	    createArticleStage.setTitle("Create New Article");
+	    createArticleStage.initModality(Modality.APPLICATION_MODAL);  // Block main app interaction
+	    
+	    Label label_error = new Label("Please fill in all fields");
+	    label_error.setStyle("-fx-text-fill: " + "red" + ";");
+	    label_error.setManaged(false);
+    	label_error.setVisible(false);
+
+	    //Radio buttons for level
+	    Label levelLabel = new Label("Select Level:");
+	    ToggleGroup levelGroup = new ToggleGroup();
+	    RadioButton beginner = new RadioButton("Beginner");
+	    RadioButton intermediate = new RadioButton("Intermediate");
+	    RadioButton advanced = new RadioButton("Advanced");
+	    RadioButton expert = new RadioButton("Expert");
+
+	    beginner.setToggleGroup(levelGroup);
+	    intermediate.setToggleGroup(levelGroup);
+	    advanced.setToggleGroup(levelGroup);
+	    expert.setToggleGroup(levelGroup);
+
+	    HBox levelBox = new HBox(10, beginner, intermediate, advanced, expert);
+	    levelBox.setAlignment(Pos.CENTER_LEFT);
+
+	    //Checkboxes for groups
+	    Label groupLabel = new Label("Group:");
+	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");
+	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles");
+
+	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
+	    groupBox.setAlignment(Pos.CENTER_LEFT);
+
+	    //Permissions Checkboxes
+	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
+	    CheckBox studentPermission = new CheckBox("Student");
+	    CheckBox instructorPermission = new CheckBox("Instructor");
+	    CheckBox adminPermission = new CheckBox("Admin");
+
+	    HBox permissionsBox = new HBox(10, studentPermission, instructorPermission, adminPermission);
+	    permissionsBox.setAlignment(Pos.CENTER_LEFT);
+
+	    VBox fieldsBox = new VBox(10);  // Vertical container for all text fields
+	    fieldsBox.setPadding(new Insets(10));
+	    
+	    TextField text_title = new TextField();
+	    Label label_title = new Label("Title:");
+	    VBox titlebox = new VBox(5, label_title, text_title);
+	    
+	    TextField text_descriptor = new TextField();
+	    Label label_descriptor = new Label("Descriptor:");
+	    VBox descbox = new VBox(5, label_descriptor, text_descriptor);
+	    
+	    TextField text_keywords = new TextField();
+	    Label label_keywords = new Label("Keywords:");
+	    VBox keywordbox = new VBox(5, label_keywords, text_keywords);
+	    
+	    TextArea bodyField = new TextArea();
+	    bodyField.setPrefRowCount(8);  // Multiline input
+
+	    Label bodyLabel = new Label("Body:");
+	    VBox bodyBox = new VBox(5, bodyLabel, bodyField); 
+
+	    TextField text_reference = new TextField();
+	    Label label_reference = new Label("Reference:");
+	    VBox referencebox = new VBox(5, label_reference, text_reference);
+
+	    // Add all fields to the VBox
+	    fieldsBox.getChildren().addAll(
+	    		titlebox, descbox, keywordbox, bodyBox, referencebox
+	    );
+
+	    // === Create Button ===
+	    Button createButton = new Button("Create Article");
+	    createButton.setOnAction(e -> {
+	    	String level = "";
+	    	if (levelGroup.getSelectedToggle() != null) {
+	    	    level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
+	    	} else {
+	    	    label_error.setText("Please select a level.");  // Example: Set error message
+	    	    label_error.setManaged(true);
+	    	    label_error.setVisible(true);
+	    	    return;  // Stop further processing if a level isn't selected
+	    	}
+	        boolean eclipseSelected = eclipseGroup.isSelected();
+	        boolean intelliJSelected = intelliJGroup.isSelected();
+	        boolean student = studentPermission.isSelected();
+	        boolean instructor = instructorPermission.isSelected();
+	        boolean admin = adminPermission.isSelected();
+	        String permissions = "";
+	        if (student) {
+	        	permissions += "student;";
+	        }
+	        if (instructor) {
+	        	permissions += "instructor;";
+	        }
+	        if (admin) {
+	        	permissions += "admin;";
+	        }
+	        if (permissions.endsWith(";")) {
+	            permissions = permissions.substring(0, permissions.length() - 1);
+	        }
+
+	        String title = text_title.getText();
+	        String descriptor = text_descriptor.getText();
+	        String keywords = text_keywords.getText();
+	        String body = bodyField.getText();
+	        String reference = text_reference.getText();
+
+	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || text_keywords.getText().isEmpty() || 
+	        		bodyField.getText().isEmpty() || text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
+	        	label_error.setManaged(true);
+	        	label_error.setVisible(true);
+	        	
+	        } else {
+	        	try {
+	        		label_error.setManaged(false);
+	            	label_error.setVisible(false);
+		        	gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, eclipseSelected, intelliJSelected, permissions, title, descriptor, keywords, body, reference);
+	        	}
+	        	catch (Exception ex) {
+	        		ex.printStackTrace();
+	        	}
+	            createArticleStage.close();  // Close popup on success
+	        }
+	    });
+
+	    VBox mainLayout = new VBox(15, 
+	        levelLabel, levelBox, 
+	        groupLabel, groupBox, 
+	        permissionsLabel, permissionsBox, 
+	        fieldsBox, label_error, createButton
+	    );
+	    mainLayout.setAlignment(Pos.TOP_LEFT);
+	    mainLayout.setPadding(new Insets(20));
+
+	    // === Set Scene and Show Popup ===
+	    Scene scene = new Scene(mainLayout, 500, 650);
+	    createArticleStage.setScene(scene);
+	    createArticleStage.showAndWait();  // Wait for user input
 	}
 	
 	private void handleViewArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
@@ -286,23 +436,137 @@ public class ArticleAPageUI {
 	}
 	
 	private void handleBackupToFile(gp360EdDisc_GUIdriver driver) throws SQLException{
-		try {
-			String fileName = text_filename.getText();
-			gp360EdDisc_GUIdriver.getDBHelper().backupDatabase(fileName);
+		if (text_filename.getText().equals("")) {
+			label_noFile.setVisible(true);
+	        label_noFile.setManaged(true);
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	
-		
+		else {
+			try {
+				label_noFile.setVisible(false);
+		        label_noFile.setManaged(false);
+				String fileName = text_filename.getText();
+				if (fileName == "") {
+					//set error label visibility for no entry
+					return;
+				}
+				gp360EdDisc_GUIdriver.getDBHelper().backupDatabase(fileName);
+				text_filename.setText("");
+				Alert alert = new Alert(AlertType.INFORMATION);
+				alert.setTitle("Backup Successful");
+				alert.setHeaderText(null);
+				alert.setContentText("A backup of the article database has been made at: " + fileName);
+		        alert.showAndWait();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				
+				Alert alert = new Alert(AlertType.ERROR);
+		        alert.setTitle("Backup Failed");
+		        alert.setHeaderText(null);
+		        alert.setContentText("An error occurred while creating the backup.");
+		        alert.showAndWait();
+			}
+		}	
 	}
 	
 	private void handleRestoreToBackup(gp360EdDisc_GUIdriver driver) throws SQLException{
-		
+		if (text_filename.getText().equals("")) {
+			label_noFile.setVisible(true);
+	        label_noFile.setManaged(true);
+		}
+		else {
+			try {
+				label_noFile.setVisible(false);
+		        label_noFile.setManaged(false);
+				String fileName = text_filename.getText();
+				label_noFile.setVisible(false);
+		        label_noFile.setManaged(false);
+				Stage restoreStage = new Stage();
+				restoreStage.setTitle("Are you sure?");
+				restoreStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
+				restoreStage.setOnCloseRequest(WindowEvent::consume);
+				
+				Label restoreWarning = new Label("Are you sure you want to restore from backup?\nThe current article database will be erased.");
+				Button noConfirm = new Button("No");
+				Button yesConfirm = new Button("Yes");
+				
+				noConfirm.setOnAction(e -> {
+					restoreStage.close();
+					text_filename.setText("");
+				});
+						
+				yesConfirm.setOnAction(e -> {
+					try {
+						gp360EdDisc_GUIdriver.getDBHelper().restoreDatabase(fileName);
+						restoreStage.close();
+						text_filename.setText("");
+					}
+					catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				});
+				
+				VBox deletePopup = new VBox(10, restoreWarning, noConfirm, yesConfirm);
+				deletePopup.setAlignment(Pos.CENTER);
+				deletePopup.setPrefSize(350, 150);
+				Scene popupRestoreScene = new Scene(deletePopup);
+				
+				restoreStage.setScene(popupRestoreScene);
+				restoreStage.showAndWait();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}	
 	}
 	
 	private void handleMergeFromBackup(gp360EdDisc_GUIdriver driver) throws SQLException{
-		
+		if (text_filename.getText().equals("")) {
+			label_noFile.setVisible(true);
+		    label_noFile.setManaged(true);
+		}
+		else {
+			try {
+				label_noFile.setVisible(false);
+			    label_noFile.setManaged(false);
+			    String fileName = text_filename.getText();
+				Stage mergeStage = new Stage();
+				mergeStage.setTitle("Are you sure?");
+				mergeStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
+				mergeStage.setOnCloseRequest(WindowEvent::consume);			
+					
+				Label restoreWarning = new Label("Are you sure you want to merge from backup?\nThe articles in " + fileName + " will be added to the article database.");
+				Button btn_noConfirm = new Button("No");
+				Button btn_yesConfirm = new Button("Yes");
+					
+				btn_noConfirm.setOnAction(e -> {
+					mergeStage.close();
+					text_filename.setText("");
+				});
+							
+				btn_yesConfirm.setOnAction(e -> {
+					try {
+						gp360EdDisc_GUIdriver.getDBHelper().mergeDatabase(fileName);
+						mergeStage.close();
+						text_filename.setText("");
+					}
+					catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				});
+					
+				VBox mergePopup = new VBox(10, restoreWarning, btn_noConfirm, btn_yesConfirm);
+				mergePopup.setAlignment(Pos.CENTER);
+				mergePopup.setPrefSize(350, 150);
+				Scene popupMergeScene = new Scene(mergePopup);
+					
+				mergeStage.setScene(popupMergeScene);
+				mergeStage.showAndWait();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private void handleMenu(gp360EdDisc_GUIdriver driver) throws SQLException { 

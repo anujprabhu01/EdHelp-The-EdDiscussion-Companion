@@ -1,6 +1,8 @@
 package groupProjectEdDisc;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.*;
@@ -81,7 +83,7 @@ class DatabaseHelper {
 				+ "id LONG AUTO_INCREMENT PRIMARY KEY, "
 				+ "level VARCHAR(255), "
 				+ "eclipseGroup BOOLEAN, "
-				+ "intlleliJGroup BOOLEAN, "
+				+ "intelliJGroup BOOLEAN, "
 				+ "permissions VARCHAR(255), "
 				+ "title VARCHAR(255), "
 				+ "descriptor VARCHAR(255), "
@@ -104,7 +106,6 @@ class DatabaseHelper {
 		}
 		return true;
 	}
-
 
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
 		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -235,11 +236,6 @@ class DatabaseHelper {
 		String query = "SELECT * FROM cse360users WHERE username = ? AND password = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, username);
-			pstmt.setString(2, password);
-			try (ResultSet rs = pstmt.executeQuery()) {
-				return rs.next();
-			}
-		}
 			pstmt.setString(2, password);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				return rs.next();
@@ -402,58 +398,6 @@ class DatabaseHelper {
 	    return false;
 	    
     }
-////////////////////NEW FUNCTION JAKE
-	public boolean setPassword(String newPass, String email) {
-		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE email = ?";
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-			pstmt.setString(1, newPass);
-			pstmt.setBoolean(2, true);
-			pstmt.setString(3, email);
-			int affectedRows = pstmt.executeUpdate();
-	        return affectedRows > 0;
-		}
-		catch (SQLException e) {
-			e.printStackTrace();
-			return false; // Return false if an error occurs
-		}
-	}
-	
-	public boolean setPasswordWithUSER(String newPass) {
-		String query = "UPDATE cse360users SET  password = ?, needsPassReset = ? WHERE username = ?";
-		String username = gp360EdDisc_GUIdriver.USERNAME;
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-			pstmt.setString(1, newPass);
-			pstmt.setBoolean(2, false);
-			pstmt.setString(3, username);
-			int affectedRows = pstmt.executeUpdate();
-	        return affectedRows > 0;
-		}
-		catch (SQLException e) {
-			e.printStackTrace();
-			return false; // Return false if an error occurs
-		}
-	}
-	
-	
-	public boolean getNeedPassReset() throws SQLException {
-		String username = gp360EdDisc_GUIdriver.USERNAME;
-	   
-		String query = "SELECT needsPassReset FROM cse360users WHERE username = ?";
-	    
-	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-	        pstmt.setString(1, username);
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            if (rs.next()) {
-	                // Check the value of finishedSetup
-	                boolean needsPassReset = rs.getBoolean("needsPassReset");
-	                // Return true if setup is not finished, otherwise false
-	                return needsPassReset;
-	            }
-	        }
-	    }
-	    return false;
-	    
-    }
 	
 	public boolean deleteUser(String username) {
 	    String deleteSQL = "DELETE FROM cse360users WHERE username = ?";
@@ -470,17 +414,12 @@ class DatabaseHelper {
 	}
 ////////////////////Changed FUNCTION JAKE
 	public String listUserAccounts() {
-////////////////////Changed FUNCTION JAKE
-	public String listUserAccounts() {
 	    String query = "SELECT username, firstName, lastName, admin, instructor, student FROM cse360users";
-	    StringBuilder result = new StringBuilder();
-
 	    StringBuilder result = new StringBuilder();
 
 	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 	        ResultSet rs = pstmt.executeQuery();
 
-	        result.append("User Accounts:\n");
 	        result.append("User Accounts:\n");
 	        while (rs.next()) {
 	            String username = rs.getString("username");
@@ -598,8 +537,8 @@ class DatabaseHelper {
 	}
 	
 	//ARTICLES
-	public void addArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references ) throws Exception {
-		String query = "INSERT INTO articles (id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, references) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	public void addArticleWithID(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references ) throws Exception {
+		String query = "INSERT INTO articles (id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, level);
@@ -616,33 +555,50 @@ class DatabaseHelper {
 		}
 	}
 	
-	public void updateArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references) throws Exception {
-			// SQL query for updating an article by ID
-			String query = "UPDATE articles SET title = ?, level = ?, eclipseGroup = ?, intelliJGroup = ?, permissions = ?, descriptor = ?, keywords = ?, body = ?, references = ? WHERE id = ?";
-			try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-			// Set values for each parameter in the SQL query
-			pstmt.setString(1, title);
-			pstmt.setString(2, level);
-			pstmt.setBoolean(3, eclipseGroup);
-			pstmt.setBoolean(4, intelliJGroup);
-			pstmt.setString(5, permissions);
+	public void createArticle(String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references ) throws Exception {
+		String query = "INSERT INTO articles (level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, level);
+			pstmt.setBoolean(2, eclipseGroup);
+			pstmt.setBoolean(3, intelliJGroup);
+			pstmt.setString(4, permissions);
+			pstmt.setString(5, title);
 			pstmt.setString(6, descriptor);
 			pstmt.setString(7, keywords);
 			pstmt.setString(8, body);
 			pstmt.setString(9, references);
-			pstmt.setInt(10, id);  // The article ID goes at the end (WHERE clause)
+			
+			pstmt.executeUpdate();
+		}
+	}
+	
+	public void updateArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references) throws Exception {
+			// SQL query for updating an article by ID
+			String query = "UPDATE articles SET title = ?, level = ?, eclipseGroup = ?, intelliJGroup = ?, permissions = ?, descriptor = ?, keywords = ?, body = ?, reference = ? WHERE id = ?";
+			try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+				// Set values for each parameter in the SQL query
+				pstmt.setString(1, title);
+				pstmt.setString(2, level);
+				pstmt.setBoolean(3, eclipseGroup);
+				pstmt.setBoolean(4, intelliJGroup);
+				pstmt.setString(5, permissions);
+				pstmt.setString(6, descriptor);
+				pstmt.setString(7, keywords);
+				pstmt.setString(8, body);
+				pstmt.setString(9, references);
+				pstmt.setInt(10, id);  // The article ID goes at the end (WHERE clause)
 			}
 	}
 	
 	//Backs up the database to a specified file name
-		public void backupDatabase(String filename) throws Exception {
-	        String query = "SELECT id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, references FROM articles";
+	public void backupDatabase(String filename) throws Exception {
+		String query = "SELECT id, level, eclipseGroup, intelliJGroup, permissions, title, descriptor, keywords, body, reference FROM articles";
 	        try (BufferedWriter w = new BufferedWriter(new FileWriter(filename)); //uses BufferedWriter to write to file
 	        	PreparedStatement pstmt = connection.prepareStatement(query);
 	            ResultSet rs = pstmt.executeQuery()) {
 	        	
 	        	while (rs.next()) {
-	        		//grabing each value and putting in String
+	        		//grabbing each value and putting in String
 	        		int id = rs.getInt("id");
 	                String level = rs.getString("level");
 	                boolean eclipse = rs.getBoolean("eclipseGroup");
@@ -652,17 +608,94 @@ class DatabaseHelper {
 	                String descriptor = rs.getString("descriptor");
 	                String keywords = rs.getString("keywords");
 	                String body = rs.getString("body");
-	                String references = rs.getString("references");
-	                
+	                String references = rs.getString("reference");
+	                System.out.print("Before the write");
 	                w.write(String.format("%d,%s,%b,%b,%s,%s,%s,%s,%s,%s", id, level, eclipse, intellij, permissions, title, descriptor, keywords, body, references)); //Writing into file in comma delimited format
 	                w.newLine();
-	        	}
+	        	} 
 	        }
 	         catch (IOException | SQLException e) {
-	        	 e.printStackTrace();
+	        	 throw new Exception("Failed to back up the database", e); // Better error handling
 	         }
-		}
+	}
 	
+	//restores the database using a comma delimited file 
+	public boolean restoreDatabase(String filename) throws Exception {
+		clearDatabase(); //empties the database to be rep-opulated from the file
+		String line;
+			try (BufferedReader r = new BufferedReader(new FileReader(filename))) { //BufferedReader is used to read the file input
+				while ((line = r.readLine()) != null) { //Loops through line by line
+					String[] portions = line.split(","); //Spits each line into sections delimited by the commas
+					
+					int id = Integer.parseInt(portions[0]);
+		            String level = portions[1];
+		            boolean eclipse = Boolean.parseBoolean(portions[2]);
+		            boolean intellij = Boolean.parseBoolean(portions[3]);
+		            String permissions = portions[4];
+		            String title = portions[5];
+		            String descriptor = portions[6];
+		            String keywords = portions[7];
+		            String body = portions[8];
+		            String references = portions[9];
+		            
+		            
+		            addArticleWithID(id, level, eclipse, intellij, permissions, title, descriptor, keywords, body, references); //adds each article to the database   
+				}
+				return true;
+			} catch (IOException | SQLException e) {
+	       	 e.printStackTrace();
+	       	 return false;
+	        }
+	}
+	
+	public void mergeDatabase(String filename) throws Exception {
+		String line;
+			try (BufferedReader r = new BufferedReader(new FileReader(filename))) { //BufferedReader is used to read the file input
+				while ((line = r.readLine()) != null) { //Loops through line by line
+					String[] portions = line.split(","); //Spits each line into sections delimited by the commas
+					
+					int id = Integer.parseInt(portions[0]);
+		            String level = portions[1];
+		            boolean eclipse = Boolean.parseBoolean(portions[2]);
+		            boolean intellij = Boolean.parseBoolean(portions[3]);
+		            String permissions = portions[4];
+		            String title = portions[5];
+		            String descriptor = portions[6];
+		            String keywords = portions[7];
+		            String body = portions[8];
+		            String references = portions[9];
+		            
+		            if (idExistsInDatabase(id)) {
+		            	continue;
+		            }
+		            addArticleWithID(id, level, eclipse, intellij, permissions, title, descriptor, keywords, body, references); //adds each article to the database   
+				}
+			} catch (IOException | SQLException e) {
+	       	 e.printStackTrace();
+	        }
+	}
+	
+	public boolean idExistsInDatabase(int id) throws SQLException {
+		String query = "SELECT 1 FROM articles WHERE id = ?";
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setInt(1, id); // Bind the id parameter
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            return rs.next(); // Returns true if an article with the given ID exists
+	        }
+	    }
+	}
+	
+	//Empties the database using DELETE FROM 
+	public void clearDatabase() throws Exception {
+		String deleteSQL = "DELETE FROM articles"; // Deletes all articles
+		    try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
+		        pstmt.executeUpdate();
+		    } catch (SQLException e) {
+		        e.printStackTrace();
+		    }
+	}
 	
 	public void clearTable() throws SQLException {
 	    String query = "DROP TABLE cse360users"; // or "TRUNCATE TABLE cse360users";
@@ -686,3 +719,4 @@ class DatabaseHelper {
 	}
 
 }
+
