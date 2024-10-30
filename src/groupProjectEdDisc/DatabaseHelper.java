@@ -275,6 +275,23 @@ class DatabaseHelper {
 	    return false; // If an error occurs, assume the username doesn't exist
 	}
 	
+	public boolean articleIdExists(Long id) throws SQLException {
+		//Sam's code
+		String query = "SELECT COUNT(*) FROM articles WHERE id = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            // If the count is greater than 0, the id exists
+	            return rs.getInt(1) > 0;
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false; // If an error occurs, assume the username doesn't exist
+	}
+	
+	
 	public boolean isInvCodeValid(String invCode) throws SQLException { //checks if code exists and if its unused: if yes, then valid code
 	    String query = "SELECT COUNT(*) FROM invitations WHERE code = ? AND is_used = false";
 	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -572,7 +589,7 @@ class DatabaseHelper {
 		}
 	}
 	
-	public void updateArticle(int id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references) throws Exception {
+	public void updateArticle(long id, String level, boolean eclipseGroup, boolean intelliJGroup, String permissions, String title, String descriptor, String keywords, String body, String references) throws Exception {
 			// SQL query for updating an article by ID
 			String query = "UPDATE articles SET title = ?, level = ?, eclipseGroup = ?, intelliJGroup = ?, permissions = ?, descriptor = ?, keywords = ?, body = ?, reference = ? WHERE id = ?";
 			try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -586,8 +603,164 @@ class DatabaseHelper {
 				pstmt.setString(7, keywords);
 				pstmt.setString(8, body);
 				pstmt.setString(9, references);
-				pstmt.setInt(10, id);  // The article ID goes at the end (WHERE clause)
+				pstmt.setLong(10, id);  // The article ID goes at the end (WHERE clause)
+				
+				pstmt.executeUpdate();
 			}
+			
+	}
+	public String getLevel(Long id) {
+		String level;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                level = rs.getString("level");
+	                return level;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public boolean getEclipseGroup(Long id) {
+		boolean group =false;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                group = rs.getBoolean("eclipseGroup");
+	                return group;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return group;
+	}
+	public boolean getIntellijGroup(Long id) {
+		boolean group =false;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                group = rs.getBoolean("intellijGroup");
+	                return group;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return group;
+	}
+	public String getPermissions(Long id) {
+		String permissions;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                permissions = rs.getString("permissions");
+	                return permissions;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public String getTitle(Long id) {
+		String title;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                title = rs.getString("title");
+	                return title;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public String getDescriptor(Long id) {
+		String descriptor;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                descriptor = rs.getString("descriptor");
+	                return descriptor;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public String getKeywords(Long id) {
+		String keywords;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                keywords = rs.getString("keywords");
+	                return keywords;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public String getBody(Long id) {
+		String body;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                body = rs.getString("body");
+	                return body;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
+	}
+	public String getReference(Long id) {
+		String reference;
+		String query = "SELECT * FROM articles WHERE id = ?";
+		
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setLong(1, id);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                reference = rs.getString("reference");
+	                return reference;
+	            }
+	        }
+	    }catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return "OOPS!";
 	}
 	
 	//Backs up the database to a specified file name

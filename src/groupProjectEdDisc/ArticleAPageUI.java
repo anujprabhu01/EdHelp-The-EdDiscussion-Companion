@@ -46,6 +46,7 @@ public class ArticleAPageUI {
 	private Button btn_updateArticle = new Button("update");
 	private Button btn_viewArticle = new Button("view");
 	private Button btn_deleteArticle = new Button("delete");
+	private Label errorId = new Label("Please enter a valid Article ID");
 	
 	private Label label_listArticles = new Label("List Articles");
 	private CheckBox check_All = new CheckBox("All");
@@ -131,27 +132,78 @@ public class ArticleAPageUI {
         btn_viewArticle.setLayoutY(144);
         theRoot.getChildren().add(btn_viewArticle);
             
+      //error message for id
+        setupLabelUI(errorId, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 200, 80, "red");
+        errorId.setVisible(false);
+        errorId.setManaged(false);
+        theRoot.getChildren().add(errorId);
         // 
-        btn_updateArticle.setOnAction(e -> {
-        	try {
-        	handleViewArticle(driver);
-        	} catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        });
-        
+        btn_viewArticle.setOnAction(e -> {												//TODO check for article
+            //Sam's code
+            	//TODO add functionality to make sure the id is in the table and then 
+            	
+            	boolean update2 = false;
+            	if(text_ID.getText().isEmpty()) {
+            		errorId.setVisible(true);
+            		errorId.setManaged(true);
+            	}else {
+            		try {
+            			errorId.setVisible(false);
+            			errorId.setManaged(false);
+            			long id = Long.parseLong(text_ID.getText());
+            			update2 =  gp360EdDisc_GUIdriver.getDBHelper().articleIdExists(id);
+            			if(update2) {
+            				handleViewArticle(driver, id);
+            			}
+            			else {
+            				//setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color)
+            				errorId.setVisible(true);
+            				errorId.setManaged(true);
+            			}
+                    	
+                    	} catch (SQLException ex) {
+                            ex.printStackTrace();
+                        }
+            		
+            	}
+            	
+            });
+        //Sam's code
         btn_updateArticle.setText("Update");
         btn_updateArticle.setLayoutX(180);
         btn_updateArticle.setLayoutY(144);
         theRoot.getChildren().add(btn_updateArticle);
-            
-        // 
-        btn_updateArticle.setOnAction(e -> {
-        	try {
-        	handleUpdateArticle(driver);
-        	} catch (SQLException ex) {
-                ex.printStackTrace();
-            }
+        
+
+        btn_updateArticle.setOnAction(e -> {												//TODO check for article
+        //Sam's code
+        	//TODO add functionality to make sure the id is in the table and then 
+        	
+        	boolean update2 = false;
+        	if(text_ID.getText().isEmpty()) {
+        		errorId.setVisible(true);
+        		errorId.setManaged(true);
+        	}else {
+        		try {
+        			errorId.setVisible(false);
+        			errorId.setManaged(false);
+        			long id = Long.parseLong(text_ID.getText());
+        			update2 =  gp360EdDisc_GUIdriver.getDBHelper().articleIdExists(id);
+        			if(update2) {
+        				handleUpdateArticle(driver, id);
+        			}
+        			else {
+        				//setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color)
+        				errorId.setVisible(true);
+        				errorId.setManaged(true);
+        			}
+                	
+                	} catch (SQLException ex) {
+                        ex.printStackTrace();
+                    }
+        		
+        	}
+        	
         });
         
         btn_deleteArticle.setText("Delete");
@@ -419,12 +471,279 @@ public class ArticleAPageUI {
 	    createArticleStage.showAndWait();  // Wait for user input
 	}
 	
-	private void handleViewArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
+	private void handleViewArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException{
+		// === Call to get Article Values === use id
+		String level = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
+		String title =gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
+		String descriptor = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
+		String body = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
+		String keywords = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
+		String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 		
+		
+		// Create a new Stage
+	    Stage viewArticleStage = new Stage();
+	    viewArticleStage.setTitle("Article #"+id);
+	    // TextArea to display the user accounts
+	    Label titleLabel = new Label(title);
+	    titleLabel.setWrapText(true);
+	    titleLabel.setFont(Font.font("Arial", 24));
+	    titleLabel.setStyle("-fx-font-weight: bold");
+	    
+	    Label levelLabel = new Label("Level: "+level);
+	    levelLabel.setWrapText(true);
+	    levelLabel.setFont(Font.font("Arial", 18));
+	    levelLabel.setStyle("-fx-font-weight: bold");
+	    
+	    Label descriptorLabel = new Label(descriptor);
+	    descriptorLabel.setWrapText(true);
+	    descriptorLabel.setFont(Font.font("Arial", 18));
+	    //descriptorLabel.setStyle("-fx-font-weight: bold");
+	    
+	    Label keywordsLabel = new Label("Keywords: "+keywords);
+	    keywordsLabel.setWrapText(true);
+	    keywordsLabel.setFont(Font.font("Arial", 18));
+	    //keywordsLabel.setStyle("-fx-font-weight: bold");
+	    
+	    Label bodyLabel = new Label(body);
+	    bodyLabel.setWrapText(true);
+	    bodyLabel.setFont(Font.font("Arial", 18));
+	    //bodyLabel.setStyle("-fx-font-weight: bold");
+	    
+	    Label referenceLabel = new Label(reference);
+	    referenceLabel.setWrapText(true);
+	    referenceLabel.setFont(Font.font("Arial", 18));
+	    referenceLabel.setStyle("-fx-font-style: italic");
+	    
+
+	    
+	    // Make sure this window doesn't block interaction with the main window
+	    viewArticleStage.initModality(Modality.NONE); 
+
+	    
+	    VBox mainLayout = new VBox(8, 
+	    		titleLabel, levelLabel, descriptorLabel, keywordsLabel, bodyLabel, referenceLabel
+		    );
+		    mainLayout.setAlignment(Pos.TOP_CENTER);
+		    mainLayout.setPadding(new Insets(20));
+
+		    // === Set Scene and Show Popup ===
+		    Scene scene = new Scene(mainLayout, 600, 400);
+		    viewArticleStage.setScene(scene);
+		    viewArticleStage.showAndWait();  // Wait for user input
 	}
 	
-	private void handleUpdateArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
+	private void handleUpdateArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException{ 				//changed to use int
 		
+		// === Call to get Article Values === use id
+		String level2 = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
+		boolean eclipseGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getEclipseGroup(id);
+		boolean intellijGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getIntellijGroup(id);
+		String title2 =gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
+		String permissions2 = gp360EdDisc_GUIdriver.getDBHelper().getPermissions(id);
+		String descriptor2 = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
+		String keywords2 = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
+		String body2 = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
+		String reference2 = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
+		
+		Stage createArticleStage = new Stage();  // New stage for the popup
+	    createArticleStage.setTitle("Update Article");
+	    createArticleStage.initModality(Modality.APPLICATION_MODAL);  // Block main app interaction
+	    
+	    Label label_error = new Label("Please fill in all fields");
+	    label_error.setStyle("-fx-text-fill: " + "red" + ";");
+	    label_error.setManaged(false);
+    	label_error.setVisible(false);
+
+	    //Radio buttons for level
+	    Label levelLabel = new Label("Select Level:");
+	    ToggleGroup levelGroup = new ToggleGroup();
+	    RadioButton beginner = new RadioButton("Beginner");
+	    RadioButton intermediate = new RadioButton("Intermediate");
+	    RadioButton advanced = new RadioButton("Advanced");
+	    RadioButton expert = new RadioButton("Expert");
+
+	    beginner.setToggleGroup(levelGroup);
+	    intermediate.setToggleGroup(levelGroup);
+	    advanced.setToggleGroup(levelGroup);
+	    expert.setToggleGroup(levelGroup);																		
+	    
+	    //Shows if the selected article is Beginner, Intermediate, Advanced, or Expert
+	    if(level2.equals("Expert")) {
+	    	levelGroup.selectToggle(expert);
+	    }else if(level2.equals("Beginner")) {
+	    	levelGroup.selectToggle(beginner);
+	    }else if(level2.equals("Intermediate")) {
+	    	levelGroup.selectToggle(intermediate);
+	    }else if(level2.equals("Advanced")) {
+	    	levelGroup.selectToggle(advanced);
+	    }else {
+	    	
+	    }
+	    
+	    HBox levelBox = new HBox(10, beginner, intermediate, advanced, expert);
+	    levelBox.setAlignment(Pos.CENTER_LEFT);
+
+	    //Checkboxes for groups
+	    Label groupLabel = new Label("Group:");
+	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");												
+	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles");	
+	    
+	    //Shows if the selected article is in an eclipse or intelliJ group
+	    if(eclipseGroup2) {
+	    	eclipseGroup.setSelected(eclipseGroup2);
+	    }
+	    if(intellijGroup2) {
+	    	intelliJGroup.setSelected(intellijGroup2);
+	    }
+	    
+	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
+	    groupBox.setAlignment(Pos.CENTER_LEFT);																	
+
+	    //Permissions Checkboxes
+	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
+	    CheckBox studentPermission = new CheckBox("Student");												
+	    CheckBox instructorPermission = new CheckBox("Instructor");											
+	    CheckBox adminPermission = new CheckBox("Admin");													
+	    
+	    //Shows if the selected article is visible to Students, Instructors, or Admins
+	    String checkStudent = "student";
+	    String checkInstructor = "instructor";
+	    String checkAdmin = "admin";
+	    if(permissions2.contains(checkStudent)){
+	    	studentPermission.setSelected(true);
+	    }
+	    if(permissions2.contains(checkInstructor)){
+	    	instructorPermission.setSelected(true);
+	    }
+		if(permissions2.contains(checkAdmin)){
+			adminPermission.setSelected(true);
+		}
+	    
+
+	    HBox permissionsBox = new HBox(10, studentPermission, instructorPermission, adminPermission);
+	    permissionsBox.setAlignment(Pos.CENTER_LEFT);
+
+	    VBox fieldsBox = new VBox(10);  // Vertical container for all text fields
+	    fieldsBox.setPadding(new Insets(10));
+	    
+	    TextField text_title = new TextField();																
+	    Label label_title = new Label("Title:");
+	    VBox titlebox = new VBox(5, label_title, text_title);
+	    //set the text of the title textbox via id
+	    text_title.setText(title2);
+	    
+	    
+	    TextField text_descriptor = new TextField();														
+	    Label label_descriptor = new Label("Descriptor:");
+	    VBox descbox = new VBox(5, label_descriptor, text_descriptor);
+	    //set the text of the descriptor textbox via id
+	    text_descriptor.setText(descriptor2);
+	    
+	    TextField text_keywords = new TextField();															
+	    Label label_keywords = new Label("Keywords:");
+	    VBox keywordbox = new VBox(5, label_keywords, text_keywords);
+	    //set the text of the keywords textbox via id
+	    text_keywords.setText(keywords2);
+	    
+	    TextArea bodyField = new TextArea();																
+	    bodyField.setPrefRowCount(8);  // Multiline input
+
+	    Label bodyLabel = new Label("Body:");
+	    VBox bodyBox = new VBox(5, bodyLabel, bodyField); 
+	    //set the text of the body textbox via id
+	    bodyField.setText(body2);
+
+	    TextField text_reference = new TextField();															//TODO set each if active
+	    Label label_reference = new Label("Reference:");
+	    VBox referencebox = new VBox(5, label_reference, text_reference);
+	    //set the text of the reference textbox via id
+	    text_reference.setText(reference2);
+
+	    // Add all fields to the VBox
+	    fieldsBox.getChildren().addAll(
+	    		titlebox, descbox, keywordbox, bodyBox, referencebox
+	    );
+	    
+	    
+	    
+	    
+	    // === Revert Changes Button ===																	
+	    Button revertChangesButton = new Button("Revert Changes");
+	    revertChangesButton.setOnAction(e -> {
+	    	createArticleStage.close();
+	    });
+	    
+	    
+	    
+	    // === Create Button ===																			//TODO MAKE THIS AN UPDATE BUTTON
+	    Button createButton = new Button("Save Changes");
+	    createButton.setOnAction(e -> {
+	    	String level = "";
+	    	if (levelGroup.getSelectedToggle() != null) {
+	    	    level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
+	    	} else {
+	    	    label_error.setText("Please select a level.");  // Example: Set error message
+	    	    label_error.setManaged(true);
+	    	    label_error.setVisible(true);
+	    	    return;  // Stop further processing if a level isn't selected
+	    	}
+	        boolean eclipseSelected = eclipseGroup.isSelected();
+	        boolean intelliJSelected = intelliJGroup.isSelected();
+	        boolean student = studentPermission.isSelected();
+	        boolean instructor = instructorPermission.isSelected();
+	        boolean admin = adminPermission.isSelected();
+	        String permissions = "";
+	        if (student) {
+	        	permissions += "student;";
+	        }
+	        if (instructor) {
+	        	permissions += "instructor;";
+	        }
+	        if (admin) {
+	        	permissions += "admin;";
+	        }
+	        if (permissions.endsWith(";")) {
+	            permissions = permissions.substring(0, permissions.length() - 1);
+	        }
+
+	        String title = text_title.getText();
+	        String descriptor = text_descriptor.getText();
+	        String keywords = text_keywords.getText();
+	        String body = bodyField.getText();
+	        String reference = text_reference.getText();
+
+	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || text_keywords.getText().isEmpty() || 
+	        		bodyField.getText().isEmpty() || text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
+	        	label_error.setManaged(true);
+	        	label_error.setVisible(true);
+	        	
+	        } else {
+	        	try {
+	        		label_error.setManaged(false);
+	            	label_error.setVisible(false);
+		        	gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, eclipseSelected, intelliJSelected, permissions, title, descriptor, keywords, body, reference);
+	        	}
+	        	catch (Exception ex) {
+	        		ex.printStackTrace();
+	        	}
+	            createArticleStage.close();  // Close popup on success
+	        }
+	    });
+
+	    VBox mainLayout = new VBox(15, 
+	        levelLabel, levelBox, 
+	        groupLabel, groupBox, 
+	        permissionsLabel, permissionsBox, 
+	        fieldsBox, label_error, createButton, revertChangesButton
+	    );
+	    mainLayout.setAlignment(Pos.TOP_LEFT);
+	    mainLayout.setPadding(new Insets(20));
+
+	    // === Set Scene and Show Popup ===
+	    Scene scene = new Scene(mainLayout, 500, 650);
+	    createArticleStage.setScene(scene);
+	    createArticleStage.showAndWait();  // Wait for user input
 	}
 	
 	private void handleDeleteArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
