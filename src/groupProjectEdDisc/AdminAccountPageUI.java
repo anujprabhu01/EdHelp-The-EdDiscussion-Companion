@@ -51,7 +51,7 @@ public class AdminAccountPageUI {
 	// Jake's code
 	private Label label_ApplicationTitle = new Label("Admin User Control");
 	private Button btn_logOut = new Button("Log Out");
-	private Button btn_menu = new Button("menu");
+	private Button btn_menu = new Button("Menu");
 	
     private Label label_InviteUser = new Label("Invite User");
     private Label label_InviteUserEmail = new Label("Email:");
@@ -111,7 +111,7 @@ public class AdminAccountPageUI {
         btn_menu.setMaxWidth(100);
         theRoot.getChildren().add(btn_menu);
             
-        // Handle send invite
+        // Handle menu operations
         btn_menu.setOnAction(e -> {
         	try {
         	handleMenu(driver);
@@ -556,7 +556,7 @@ public class AdminAccountPageUI {
 	}
 	
 	private void handleMenu(gp360EdDisc_GUIdriver driver) throws SQLException { 
-		driver.showMenuPopUp();
+		driver.showMenuPopUp(driver.CURRENT_SESSION);
 	}
 	
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {

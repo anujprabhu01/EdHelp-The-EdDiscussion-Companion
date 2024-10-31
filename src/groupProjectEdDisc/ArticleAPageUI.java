@@ -21,6 +21,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -45,8 +46,11 @@ public class ArticleAPageUI {
 	private TextField text_ID = new TextField();
 	private Button btn_updateArticle = new Button("update");
 	private Button btn_viewArticle = new Button("view");
+	
 	private Button btn_deleteArticle = new Button("delete");
 	private Label errorId = new Label("Please enter a valid Article ID");
+	private Label label_enterIDToDelete = new Label("Please enter ID of article to delete");
+	private Label label_idInvalid = new Label("Article with given ID does not exist");
 	
 	private Label label_listArticles = new Label("List Articles");
 	private CheckBox check_All = new CheckBox("All");
@@ -314,9 +318,17 @@ public class ArticleAPageUI {
             }
         });
         
+        setupLabelUI(label_enterIDToDelete, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 20, 355, "red");
+        label_enterIDToDelete.setManaged(false);
+        label_enterIDToDelete.setVisible(false);
+        
+        setupLabelUI(label_idInvalid, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 20, 355, "red");
+        label_idInvalid.setManaged(false);
+        label_idInvalid.setVisible(false);
+        
         
         theRoot.getChildren().addAll(label_ApplicationTitle ,label_createArticle, label_updateArticle, label_articleID, text_ID, label_listArticles, 
-        		label_BackupandRestoreArticles, label_fileName, text_filename, label_noFile);
+        		label_BackupandRestoreArticles, label_fileName, text_filename, label_noFile, label_enterIDToDelete, label_idInvalid);
         
 	    
 	}
@@ -747,11 +759,119 @@ public class ArticleAPageUI {
 	}
 	
 	private void handleDeleteArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
+		Stage deleteArticleStage = new Stage();
+		deleteArticleStage.setTitle("Are you sure?");
+		deleteArticleStage.initModality(Modality.APPLICATION_MODAL);
 		
+		// confirmation label
+		Label label_deleteArticle = new Label("Are you sure you want to delete this article? This action cannot be undone.");
+		
+		// confirmation buttons
+		Button btn_no = new Button("No");
+		Button btn_yes = new Button("Yes");
+		
+		HBox buttonBox = new HBox(10, btn_no, btn_yes);
+		
+		VBox deleteArticleBox = new VBox(20, label_deleteArticle, buttonBox);
+		
+		if(text_ID.getText().isEmpty()) {
+			label_enterIDToDelete.setVisible(true);
+			label_enterIDToDelete.setManaged(true);
+			label_idInvalid.setVisible(false);
+			label_idInvalid.setManaged(false);
+			return;
+		}
+		else {
+			int articleID = Integer.parseInt(text_ID.getText());
+			if(!driver.getDBHelper().idExistsInDatabase(articleID)) {
+				label_enterIDToDelete.setVisible(false);
+				label_enterIDToDelete.setManaged(false);
+				label_idInvalid.setVisible(true);
+				label_idInvalid.setManaged(true);
+				return;
+			}
+			else {
+				label_enterIDToDelete.setVisible(false);
+				label_enterIDToDelete.setManaged(false);
+				label_idInvalid.setVisible(false);
+				label_idInvalid.setManaged(false);
+				
+				btn_no.setOnAction(e -> {
+					deleteArticleStage.close();
+					text_ID.setText(""); // set field to empty string because deletion did not go through
+				});
+				btn_yes.setOnAction(e -> {
+					boolean success = driver.getDBHelper().deleteArticleWithID(articleID);
+					
+					if(success) {
+						System.out.println("deleted article with given id: " + articleID);
+					}
+					else {
+						System.out.println("deletion of article did not go through.");
+					}
+					deleteArticleStage.close();
+					text_ID.setText(""); // set field to empty string after deletion process
+				});
+				
+				deleteArticleBox.setAlignment(Pos.CENTER);
+				deleteArticleBox.setPadding(new Insets(10));
+				
+				buttonBox.setAlignment(Pos.CENTER);
+				buttonBox.setPadding(new Insets(10));
+				
+				// create scene for stage
+				Scene scene = new Scene(deleteArticleBox);
+				// set scene on stage
+				deleteArticleStage.setScene(scene);
+				deleteArticleStage.setMinHeight(250);
+				deleteArticleStage.setMinWidth(150);
+				
+				deleteArticleStage.showAndWait();
+			}
+		}	
 	}
 	
 	private void handleListArticles(gp360EdDisc_GUIdriver driver) throws SQLException{
+		// Create a new stage for the popup
+		Stage listArticlesStage = new Stage();
+		listArticlesStage.setTitle("Article List");
+		listArticlesStage.initModality(Modality.APPLICATION_MODAL);
 		
+		// Get checkbox states
+		boolean allSelected = check_All.isSelected();
+		boolean eclipseSelected = check_Eclipse.isSelected();
+		boolean intellijSelected = check_IntelliJ.isSelected();
+		
+		// generate articles list
+		String articlesList = gp360EdDisc_GUIdriver.getDBHelper().listArticles(eclipseSelected, intellijSelected, allSelected);
+		
+		// scrollable text area to display articlesList
+		TextArea articlesDisplay = new TextArea(articlesList);
+	    articlesDisplay.setEditable(false);
+	    articlesDisplay.setWrapText(true);
+	    articlesDisplay.setPrefRowCount(20);
+	    articlesDisplay.setPrefWidth(600);
+	    articlesDisplay.setPrefHeight(400);
+	    
+	    // button to close out of popup
+	    Button closeButton = new Button("Close");
+	    closeButton.setOnAction(e -> listArticlesStage.close());
+	    
+	    VBox mainLayout = new VBox(10); // 10 pixels spacing
+	    mainLayout.setPadding(new Insets(10));
+	    mainLayout.getChildren().addAll(articlesDisplay, closeButton);
+	    mainLayout.setAlignment(Pos.CENTER);
+	    
+	    // Create scene for stage
+	    Scene scene = new Scene(mainLayout);
+	    
+	    // Set scene for stage
+	    listArticlesStage.setScene(scene);
+	    
+	    listArticlesStage.setMinWidth(650);
+	    listArticlesStage.setMinHeight(500);
+	    
+	    listArticlesStage.showAndWait(); // shows the popup till you manually close it
 	}
 	
 	private void handleBackupToFile(gp360EdDisc_GUIdriver driver) throws SQLException{
@@ -798,8 +918,7 @@ public class ArticleAPageUI {
 				label_noFile.setVisible(false);
 		        label_noFile.setManaged(false);
 				String fileName = text_filename.getText();
-				label_noFile.setVisible(false);
-		        label_noFile.setManaged(false);
+				
 				Stage restoreStage = new Stage();
 				restoreStage.setTitle("Are you sure?");
 				restoreStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
@@ -889,7 +1008,7 @@ public class ArticleAPageUI {
 	}
 	
 	private void handleMenu(gp360EdDisc_GUIdriver driver) throws SQLException { 
-		driver.showMenuPopUp();
+		driver.showMenuPopUp(driver.CURRENT_SESSION);
 	}
 	
 	private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {

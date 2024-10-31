@@ -18,10 +18,10 @@ import javafx.scene.control.TextField;
 
 
 //H2 imports
-import java.sql.SQLException;
+// import java.sql.SQLException;
 
-//Scanner if needed
-import java.util.Scanner;
+//Scanner
+// import java.util.Scanner;
 
 /*******
 * <p>  Class </p>
@@ -47,6 +47,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	/** The height of the pop-up window for the user interface */
 	public final static double WINDOW_HEIGHT = 500;
 	public static String USERNAME = "";
+	public static String CURRENT_SESSION = "";
 	
 	private Scene scene;
 	private Pane theRoot;
@@ -92,11 +93,19 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public void loadUserAccount() {
 		theRoot.getChildren().clear();
 		UserAccountPageUI userAccountPage = new UserAccountPageUI(theRoot, this);
+		CURRENT_SESSION = "USER";
+	}
+	
+	public void loadInstructorAccount() {
+		theRoot.getChildren().clear();
+		InstructorAccountPageUI instructorAccountPage = new InstructorAccountPageUI(theRoot, this);
+		CURRENT_SESSION = "INSTRUCTOR";
 	}
 	
 	public void loadAdminAccount() {
 		theRoot.getChildren().clear();
 		AdminAccountPageUI adminAccountPage = new AdminAccountPageUI(theRoot, this);
+		CURRENT_SESSION = "ADMIN";
 	}
 	
 	public void loadArticleAPage() {
@@ -122,7 +131,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        });
 
 	        btn_Instructor.setOnAction(e -> {
-	            loadUserAccount();
+	            loadInstructorAccount();
 	            popupStage.close(); // Close the pop-up
 	        });
 
@@ -205,7 +214,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	    text_newPass.setMaxWidth(175);
 	    text_confirmednewPass.setMaxWidth(175);
 	    
-	    VBox layout = new VBox(15, label_enterNewPass, text_newPass, label_confirmNewPass, text_confirmednewPass, label_passwordNotSame, btn_confirm); // 20 is the spacing between the label and buttons
+	    VBox layout = new VBox(15, label_enterNewPass, text_newPass, label_confirmNewPass, text_confirmednewPass, label_passwordNotSame, btn_confirm); // 15 is the spacing between the label and buttons
 	    layout.setAlignment(Pos.CENTER);
 	    
 	    Scene popupScene = new Scene(layout, 350, 200);
@@ -214,7 +223,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	   }
 	
 		
-	public void showMenuPopUp() {
+	public void showMenuPopUp(String session) {
 		try {
 			Stage popupStage = new Stage();
 	        popupStage.initModality(Modality.APPLICATION_MODAL); // Block interaction with the main window
@@ -251,16 +260,16 @@ public class gp360EdDisc_GUIdriver extends Application {
 
 	        btn_Article.setVisible(false);
 	        btn_Article.setManaged(false);
-
-	        if (getDBHelper().isAdminForUsers(USERNAME)) {
+	        
+	        if (getDBHelper().isInstructorForUsers(USERNAME) && CURRENT_SESSION.equals("INSTRUCTOR")) { //
+	        	btn_Article.setVisible(true);
+	        	btn_Article.setManaged(true);
+	        }
+	        else if (getDBHelper().isAdminForUsers(USERNAME) && CURRENT_SESSION.equals("ADMIN")) {
 	        	btn_Article.setVisible(true);
 	        	btn_Article.setManaged(true);
 	        	btn_Account.setVisible(true);
 	        	btn_Account.setManaged(true);
-	        }
-	        if (getDBHelper().isInstructorForUsers(USERNAME)) {
-	        	btn_Article.setVisible(true);
-	        	btn_Article.setManaged(true);
 	        }
 
 	        // Show and wait should be called after everything is set

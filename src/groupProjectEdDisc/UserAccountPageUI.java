@@ -2,13 +2,8 @@ package groupProjectEdDisc;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextFlow;
 import javafx.scene.control.Button;
 
 
@@ -23,7 +18,7 @@ public class UserAccountPageUI {
 	
 	public UserAccountPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
         // Setup for the application title at the top, centered
-        setupLabelUI(label_ApplicationTitle, "Arial", 24, gp360EdDisc_GUIdriver.WINDOW_WIDTH, Pos.CENTER, 0, 10);
+        setupLabelUI(label_ApplicationTitle, "Arial", 24, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 200, Pos.CENTER, 70, 10);
         
         
      // Add login button

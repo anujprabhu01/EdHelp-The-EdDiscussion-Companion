@@ -890,6 +890,98 @@ class DatabaseHelper {
 			se.printStackTrace(); 
 		} 
 	}
-
+	
+	// function to print articles, either by group, or all articles
+	public String listArticles(boolean eclipse, boolean intellij, boolean all) {
+	    StringBuilder query = new StringBuilder("SELECT * FROM ARTICLES");
+	    
+	    if (!all && (eclipse || intellij)) {
+	        query.append(" WHERE ");
+	        
+	        if (eclipse && intellij) {
+	            query.append("(ECLIPSEGROUP = TRUE OR INTELLIJGROUP = TRUE)");
+	        } else if (eclipse) {
+	            query.append("ECLIPSEGROUP = TRUE");
+	        } else if (intellij) {
+	            query.append("INTELLIJGROUP = TRUE");
+	        }
+	    }
+	    
+	    StringBuilder result = new StringBuilder();
+	    result.append("\n====================================\n");
+	    result.append("              ARTICLES              ");
+	    result.append("\n====================================\n\n");
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
+	        ResultSet rs = pstmt.executeQuery();
+	        
+	        while (rs.next()) {
+	            // Get all fields from the article
+	            int id = rs.getInt("ID");
+	            String level = rs.getString("LEVEL");
+	            boolean eclipseGroup = rs.getBoolean("ECLIPSEGROUP");
+	            boolean intellijGroup = rs.getBoolean("INTELLIJGROUP");
+	            String permissions = rs.getString("PERMISSIONS");
+	            String title = rs.getString("TITLE");
+	            String descriptor = rs.getString("DESCRIPTOR");
+	            String keywords = rs.getString("KEYWORDS");
+	            String body = rs.getString("BODY");
+	            String reference = rs.getString("REFERENCE");
+	            
+	            // Format the output with more spacing and decoration
+	            result.append(String.format(
+	                "📑 Article ID: %d\n" +
+	                "------------------------------------\n" +
+	                "📚 Level: %s\n" +
+	                "🔷 Groups:\n" +
+	                "   Eclipse: %s\n" +
+	                "   IntelliJ: %s\n" +
+	                "🔒 Permissions: %s\n\n" +
+	                "📌 Title: %s\n" +
+	                "📝 Descriptor: %s\n" +
+	                "🏷️ Keywords: %s\n\n" +
+	                "📄 Body:\n%s\n\n" +
+	                "📚 Reference:\n%s\n" +
+	                "\n====================================\n\n",
+	                id, 
+	                level, 
+	                eclipseGroup ? "Yes" : "No", 
+	                intellijGroup ? "Yes" : "No", 
+	                permissions, 
+	                title, 
+	                descriptor, 
+	                keywords, 
+	                body, 
+	                reference));
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return "Error retrieving articles: " + e.getMessage();
+	    }
+	    
+	    // Add footer if no results were found
+	    if (result.toString().equals("\n====================================\n" +
+	                                "              ARTICLES              " +
+	                                "\n====================================\n\n")) {
+	        result.append("No articles found matching the criteria.\n");
+	        result.append("====================================\n");
+	    }
+	    
+	    return result.toString();
+	}
+	
+	public boolean deleteArticleWithID(int id) {
+		String query = "DELETE FROM articles WHERE ID = ?";
+		
+		try(PreparedStatement pstmnt = connection.prepareStatement(query)) {
+			pstmnt.setInt(1, id); // set the id in the query to var id
+			
+			int rowsAffected = pstmnt.executeUpdate();
+			return rowsAffected > 0;
+			
+		} catch(SQLException e) {
+			e.printStackTrace();
+			return false; // return false if exception is caught
+		}
+	}
 }
-
