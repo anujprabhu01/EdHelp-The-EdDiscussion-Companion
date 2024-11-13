@@ -367,12 +367,17 @@ public class ArticleAPageUI {
 	    levelBox.setAlignment(Pos.CENTER_LEFT);
 
 	    //Checkboxes for groups
-	    Label groupLabel = new Label("Group:");
-	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");
-	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles");
-
-	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
-	    groupBox.setAlignment(Pos.CENTER_LEFT);
+//	    Label groupLabel = new Label("Group: (Separated by Comma)");
+//	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");
+//	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles"); //FIXME
+//	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
+//	    groupBox.setAlignment(Pos.CENTER_LEFT);
+	    
+	    TextField groupsText = new TextField();
+	    Label groupLabel = new Label("Group: (Separated by Comma)");
+	    VBox groupBox = new VBox(5, groupLabel, groupsText);
+	    
+	    
 
 	    //Permissions Checkboxes
 	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
@@ -425,8 +430,9 @@ public class ArticleAPageUI {
 	    	    label_error.setVisible(true);
 	    	    return;  // Stop further processing if a level isn't selected
 	    	}
-	        boolean eclipseSelected = eclipseGroup.isSelected();
-	        boolean intelliJSelected = intelliJGroup.isSelected();
+//	        boolean eclipseSelected = eclipseGroup.isSelected();
+//	        boolean intelliJSelected = intelliJGroup.isSelected();
+	    	String groups = text_title.getText();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
@@ -459,7 +465,7 @@ public class ArticleAPageUI {
 	        	try {
 	        		label_error.setManaged(false);
 	            	label_error.setVisible(false);
-		        	gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, eclipseSelected, intelliJSelected, permissions, title, descriptor, keywords, body, reference);
+		        	gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, groups, permissions, title, descriptor, keywords, body, reference);
 	        	}
 	        	catch (Exception ex) {
 	        		ex.printStackTrace();
@@ -549,8 +555,10 @@ public class ArticleAPageUI {
 		
 		// === Call to get Article Values === use id
 		String level2 = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
-		boolean eclipseGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getEclipseGroup(id);
-		boolean intellijGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getIntellijGroup(id);
+//		boolean eclipseGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getEclipseGroup(id);
+//		boolean intellijGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getIntellijGroup(id);
+		String groups2 = gp360EdDisc_GUIdriver.getDBHelper().getGroups(id);
+		
 		String title2 =gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
 		String permissions2 = gp360EdDisc_GUIdriver.getDBHelper().getPermissions(id);
 		String descriptor2 = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
@@ -597,20 +605,17 @@ public class ArticleAPageUI {
 	    levelBox.setAlignment(Pos.CENTER_LEFT);
 
 	    //Checkboxes for groups
-	    Label groupLabel = new Label("Group:");
-	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");												
-	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles");	
+	    TextField groupsText = new TextField();
+	    Label groupLabel = new Label("Group: (Separated by ; )");
+	    VBox groupBox = new VBox(5, groupLabel, groupsText); 				//FIXME
+	 
+	    groupsText.setText(groups2);
 	    
-	    //Shows if the selected article is in an eclipse or intelliJ group
-	    if(eclipseGroup2) {
-	    	eclipseGroup.setSelected(eclipseGroup2);
-	    }
-	    if(intellijGroup2) {
-	    	intelliJGroup.setSelected(intellijGroup2);
-	    }
 	    
-	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
-	    groupBox.setAlignment(Pos.CENTER_LEFT);																	
+	    
+	    
+	    
+																
 
 	    //Permissions Checkboxes
 	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
@@ -700,8 +705,7 @@ public class ArticleAPageUI {
 	    	    label_error.setVisible(true);
 	    	    return;  // Stop further processing if a level isn't selected
 	    	}
-	        boolean eclipseSelected = eclipseGroup.isSelected();
-	        boolean intelliJSelected = intelliJGroup.isSelected();
+	    	String groups = groupsText.getText();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
@@ -734,7 +738,7 @@ public class ArticleAPageUI {
 	        	try {
 	        		label_error.setManaged(false);
 	            	label_error.setVisible(false);
-		        	gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, eclipseSelected, intelliJSelected, permissions, title, descriptor, keywords, body, reference);
+		        	gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, groups, permissions, title, descriptor, keywords, body, reference);
 	        	}
 	        	catch (Exception ex) {
 	        		ex.printStackTrace();
