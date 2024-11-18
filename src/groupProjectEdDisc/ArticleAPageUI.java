@@ -34,7 +34,7 @@ import java.util.Random;
 
 
 public class ArticleAPageUI { 
-	private Label label_ApplicationTitle = new Label("Article Page");
+	private Label label_ApplicationTitle = new Label("Article Manager");
 	private Button btn_logOut = new Button("Log Out");
 	private Button btn_menu = new Button("menu");
 	
@@ -54,8 +54,8 @@ public class ArticleAPageUI {
 	
 	private Label label_listArticles = new Label("List Articles");
 	private CheckBox check_All = new CheckBox("All");
-    private CheckBox check_Eclipse = new CheckBox("Eclipse");
-    private CheckBox check_IntelliJ = new CheckBox("IntelliJ");
+	private TextField text_groups = new TextField();
+	private Label label_groups = new Label("Enter groups (comma-separated):");
     private Button btn_listArticles = new Button("Display List");
 	
     private Label label_BackupandRestoreArticles = new Label("Backup and restore Articles");
@@ -234,17 +234,11 @@ public class ArticleAPageUI {
         check_All.setLayoutY(210);
         theRoot.getChildren().add(check_All);
         
-        //Setup for Admin check box when selecting roles for an invite
-        check_Eclipse.setText("Eclipse Articles");
-        check_Eclipse.setLayoutX(110);
-        check_Eclipse.setLayoutY(210);
-        theRoot.getChildren().add(check_Eclipse);
-        
-        //Setup for Instructor check box when selecting roles for an invite
-        check_IntelliJ.setText("IntelliJ Articles");
-        check_IntelliJ.setLayoutX(230);
-        check_IntelliJ.setLayoutY(210);
-        theRoot.getChildren().add(check_IntelliJ);
+        //Setup for groups fields when listing articles
+        VBox groupInputBox = new VBox(5, label_groups, text_groups);
+        groupInputBox.setLayoutX(110);
+        groupInputBox.setLayoutY(210);
+        theRoot.getChildren().add(groupInputBox);
         
         btn_listArticles.setText("Display List");
         btn_listArticles.setLayoutX(20);
@@ -340,15 +334,20 @@ public class ArticleAPageUI {
 		driver.loadloginPage();
 	}
 	
-	private void handleCreateArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
-		Stage createArticleStage = new Stage();  // New stage for the popup
+	private void handleCreateArticle(gp360EdDisc_GUIdriver driver) throws SQLException {
+	    Stage createArticleStage = new Stage();
 	    createArticleStage.setTitle("Create New Article");
-	    createArticleStage.initModality(Modality.APPLICATION_MODAL);  // Block main app interaction
-	    
+	    createArticleStage.initModality(Modality.APPLICATION_MODAL);
+
 	    Label label_error = new Label("Please fill in all fields");
 	    label_error.setStyle("-fx-text-fill: " + "red" + ";");
 	    label_error.setManaged(false);
-    	label_error.setVisible(false);
+	    label_error.setVisible(false);
+
+	    Label label_groupError = new Label("One or more groups do not exist");
+	    label_groupError.setStyle("-fx-text-fill: " + "red" + ";");
+	    label_groupError.setManaged(false);
+	    label_groupError.setVisible(false);
 
 	    //Radio buttons for level
 	    Label levelLabel = new Label("Select Level:");
@@ -366,18 +365,10 @@ public class ArticleAPageUI {
 	    HBox levelBox = new HBox(10, beginner, intermediate, advanced, expert);
 	    levelBox.setAlignment(Pos.CENTER_LEFT);
 
-	    //Checkboxes for groups
-//	    Label groupLabel = new Label("Group: (Separated by Comma)");
-//	    CheckBox eclipseGroup = new CheckBox("Eclipse Articles");
-//	    CheckBox intelliJGroup = new CheckBox("IntelliJ Articles"); //FIXME
-//	    HBox groupBox = new HBox(10, eclipseGroup, intelliJGroup);
-//	    groupBox.setAlignment(Pos.CENTER_LEFT);
-	    
+	    //Groups input
 	    TextField groupsText = new TextField();
-	    Label groupLabel = new Label("Group: (Separated by Comma)");
+	    Label groupLabel = new Label("Group: (Separated by ; )");
 	    VBox groupBox = new VBox(5, groupLabel, groupsText);
-	    
-	    
 
 	    //Permissions Checkboxes
 	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
@@ -388,63 +379,60 @@ public class ArticleAPageUI {
 	    HBox permissionsBox = new HBox(10, studentPermission, instructorPermission, adminPermission);
 	    permissionsBox.setAlignment(Pos.CENTER_LEFT);
 
-	    VBox fieldsBox = new VBox(10);  // Vertical container for all text fields
+	    VBox fieldsBox = new VBox(10);
 	    fieldsBox.setPadding(new Insets(10));
-	    
+
 	    TextField text_title = new TextField();
 	    Label label_title = new Label("Title:");
 	    VBox titlebox = new VBox(5, label_title, text_title);
-	    
+
 	    TextField text_descriptor = new TextField();
 	    Label label_descriptor = new Label("Descriptor:");
 	    VBox descbox = new VBox(5, label_descriptor, text_descriptor);
-	    
+
 	    TextField text_keywords = new TextField();
 	    Label label_keywords = new Label("Keywords:");
 	    VBox keywordbox = new VBox(5, label_keywords, text_keywords);
-	    
+
 	    TextArea bodyField = new TextArea();
-	    bodyField.setPrefRowCount(8);  // Multiline input
+	    bodyField.setPrefRowCount(8);
 
 	    Label bodyLabel = new Label("Body:");
-	    VBox bodyBox = new VBox(5, bodyLabel, bodyField); 
+	    VBox bodyBox = new VBox(5, bodyLabel, bodyField);
 
 	    TextField text_reference = new TextField();
 	    Label label_reference = new Label("Reference:");
 	    VBox referencebox = new VBox(5, label_reference, text_reference);
 
-	    // Add all fields to the VBox
 	    fieldsBox.getChildren().addAll(
-	    		titlebox, descbox, keywordbox, bodyBox, referencebox
+	        titlebox, descbox, keywordbox, bodyBox, referencebox
 	    );
 
-	    // === Create Button ===
 	    Button createButton = new Button("Create Article");
 	    createButton.setOnAction(e -> {
-	    	String level = "";
-	    	if (levelGroup.getSelectedToggle() != null) {
-	    	    level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
-	    	} else {
-	    	    label_error.setText("Please select a level.");  // Example: Set error message
-	    	    label_error.setManaged(true);
-	    	    label_error.setVisible(true);
-	    	    return;  // Stop further processing if a level isn't selected
-	    	}
-//	        boolean eclipseSelected = eclipseGroup.isSelected();
-//	        boolean intelliJSelected = intelliJGroup.isSelected();
-	    	String groups = text_title.getText();
+	        String level = "";
+	        if (levelGroup.getSelectedToggle() != null) {
+	            level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
+	        } else {
+	            label_error.setText("Please select a level.");
+	            label_error.setManaged(true);
+	            label_error.setVisible(true);
+	            return;
+	        }
+
+	        String groups = groupsText.getText();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
 	        String permissions = "";
 	        if (student) {
-	        	permissions += "student;";
+	            permissions += "student;";
 	        }
 	        if (instructor) {
-	        	permissions += "instructor;";
+	            permissions += "instructor;";
 	        }
 	        if (admin) {
-	        	permissions += "admin;";
+	            permissions += "admin;";
 	        }
 	        if (permissions.endsWith(";")) {
 	            permissions = permissions.substring(0, permissions.length() - 1);
@@ -456,37 +444,49 @@ public class ArticleAPageUI {
 	        String body = bodyField.getText();
 	        String reference = text_reference.getText();
 
-	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || text_keywords.getText().isEmpty() || 
-	        		bodyField.getText().isEmpty() || text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
-	        	label_error.setManaged(true);
-	        	label_error.setVisible(true);
-	        	
+	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || 
+	            text_keywords.getText().isEmpty() || bodyField.getText().isEmpty() || 
+	            text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
+	            label_error.setManaged(true);
+	            label_error.setVisible(true);
+	            label_groupError.setManaged(false);
+	            label_groupError.setVisible(false);
 	        } else {
-	        	try {
-	        		label_error.setManaged(false);
-	            	label_error.setVisible(false);
-		        	gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, groups, permissions, title, descriptor, keywords, body, reference);
-	        	}
-	        	catch (Exception ex) {
-	        		ex.printStackTrace();
-	        	}
-	            createArticleStage.close();  // Close popup on success
+	            try {
+	                // Check if all groups exist before proceeding
+	                if (!groups.isEmpty() && !gp360EdDisc_GUIdriver.getDBHelper().doGroupsExist(groups)) {
+	                    label_groupError.setManaged(true);
+	                    label_groupError.setVisible(true);
+	                    label_error.setManaged(false);
+	                    label_error.setVisible(false);
+	                    return;
+	                }
+
+	                label_error.setManaged(false);
+	                label_error.setVisible(false);
+	                label_groupError.setManaged(false);
+	                label_groupError.setVisible(false);
+	                gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, groups, permissions, 
+	                    title, descriptor, keywords, body, reference);
+	                createArticleStage.close();
+	            } catch (Exception ex) {
+	                ex.printStackTrace();
+	            }
 	        }
 	    });
 
-	    VBox mainLayout = new VBox(15, 
-	        levelLabel, levelBox, 
-	        groupLabel, groupBox, 
-	        permissionsLabel, permissionsBox, 
-	        fieldsBox, label_error, createButton
+	    VBox mainLayout = new VBox(15,
+	        levelLabel, levelBox,
+	        groupLabel, groupBox,
+	        permissionsLabel, permissionsBox,
+	        fieldsBox, label_error, label_groupError, createButton
 	    );
 	    mainLayout.setAlignment(Pos.TOP_LEFT);
 	    mainLayout.setPadding(new Insets(20));
 
-	    // === Set Scene and Show Popup ===
 	    Scene scene = new Scene(mainLayout, 500, 650);
 	    createArticleStage.setScene(scene);
-	    createArticleStage.showAndWait();  // Wait for user input
+	    createArticleStage.showAndWait();
 	}
 	
 	private void handleViewArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException{
@@ -551,29 +551,30 @@ public class ArticleAPageUI {
 		    viewArticleStage.showAndWait();  // Wait for user input
 	}
 	
-	private void handleUpdateArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException{ 				//changed to use int
-		
-		// === Call to get Article Values === use id
-		String level2 = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
-//		boolean eclipseGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getEclipseGroup(id);
-//		boolean intellijGroup2 = gp360EdDisc_GUIdriver.getDBHelper().getIntellijGroup(id);
-		String groups2 = gp360EdDisc_GUIdriver.getDBHelper().getGroups(id);
-		
-		String title2 =gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
-		String permissions2 = gp360EdDisc_GUIdriver.getDBHelper().getPermissions(id);
-		String descriptor2 = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
-		String keywords2 = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
-		String body2 = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
-		String reference2 = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
-		
-		Stage createArticleStage = new Stage();  // New stage for the popup
+	private void handleUpdateArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException {
+	    Stage createArticleStage = new Stage();
 	    createArticleStage.setTitle("Update Article");
-	    createArticleStage.initModality(Modality.APPLICATION_MODAL);  // Block main app interaction
-	    
+	    createArticleStage.initModality(Modality.APPLICATION_MODAL);
+
 	    Label label_error = new Label("Please fill in all fields");
 	    label_error.setStyle("-fx-text-fill: " + "red" + ";");
 	    label_error.setManaged(false);
-    	label_error.setVisible(false);
+	    label_error.setVisible(false);
+
+	    Label label_groupError = new Label("One or more groups do not exist");
+	    label_groupError.setStyle("-fx-text-fill: " + "red" + ";");
+	    label_groupError.setManaged(false);
+	    label_groupError.setVisible(false);
+
+	    // Get current article values
+	    String level2 = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
+	    String groups2 = gp360EdDisc_GUIdriver.getDBHelper().getGroups(id);
+	    String title2 = gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
+	    String permissions2 = gp360EdDisc_GUIdriver.getDBHelper().getPermissions(id);
+	    String descriptor2 = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
+	    String keywords2 = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
+	    String body2 = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
+	    String reference2 = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 
 	    //Radio buttons for level
 	    Label levelLabel = new Label("Select Level:");
@@ -586,138 +587,114 @@ public class ArticleAPageUI {
 	    beginner.setToggleGroup(levelGroup);
 	    intermediate.setToggleGroup(levelGroup);
 	    advanced.setToggleGroup(levelGroup);
-	    expert.setToggleGroup(levelGroup);																		
-	    
-	    //Shows if the selected article is Beginner, Intermediate, Advanced, or Expert
-	    if(level2.equals("Expert")) {
-	    	levelGroup.selectToggle(expert);
-	    }else if(level2.equals("Beginner")) {
-	    	levelGroup.selectToggle(beginner);
-	    }else if(level2.equals("Intermediate")) {
-	    	levelGroup.selectToggle(intermediate);
-	    }else if(level2.equals("Advanced")) {
-	    	levelGroup.selectToggle(advanced);
-	    }else {
-	    	
+	    expert.setToggleGroup(levelGroup);
+
+	    // Set current level
+	    if (level2.equals("Expert")) {
+	        levelGroup.selectToggle(expert);
+	    } else if (level2.equals("Beginner")) {
+	        levelGroup.selectToggle(beginner);
+	    } else if (level2.equals("Intermediate")) {
+	        levelGroup.selectToggle(intermediate);
+	    } else if (level2.equals("Advanced")) {
+	        levelGroup.selectToggle(advanced);
 	    }
-	    
+
 	    HBox levelBox = new HBox(10, beginner, intermediate, advanced, expert);
 	    levelBox.setAlignment(Pos.CENTER_LEFT);
 
-	    //Checkboxes for groups
+	    //Groups input
 	    TextField groupsText = new TextField();
 	    Label groupLabel = new Label("Group: (Separated by ; )");
-	    VBox groupBox = new VBox(5, groupLabel, groupsText); 				//FIXME
-	 
+	    VBox groupBox = new VBox(5, groupLabel, groupsText);
 	    groupsText.setText(groups2);
-	    
-	    
-	    
-	    
-	    
-																
 
 	    //Permissions Checkboxes
 	    Label permissionsLabel = new Label("Permissions: (Who can view this article)");
-	    CheckBox studentPermission = new CheckBox("Student");												
-	    CheckBox instructorPermission = new CheckBox("Instructor");											
-	    CheckBox adminPermission = new CheckBox("Admin");													
-	    
-	    //Shows if the selected article is visible to Students, Instructors, or Admins
+	    CheckBox studentPermission = new CheckBox("Student");
+	    CheckBox instructorPermission = new CheckBox("Instructor");
+	    CheckBox adminPermission = new CheckBox("Admin");
+
+	    // Set current permissions
 	    String checkStudent = "student";
 	    String checkInstructor = "instructor";
 	    String checkAdmin = "admin";
-	    if(permissions2.contains(checkStudent)){
-	    	studentPermission.setSelected(true);
+	    if (permissions2.contains(checkStudent)) {
+	        studentPermission.setSelected(true);
 	    }
-	    if(permissions2.contains(checkInstructor)){
-	    	instructorPermission.setSelected(true);
+	    if (permissions2.contains(checkInstructor)) {
+	        instructorPermission.setSelected(true);
 	    }
-		if(permissions2.contains(checkAdmin)){
-			adminPermission.setSelected(true);
-		}
-	    
+	    if (permissions2.contains(checkAdmin)) {
+	        adminPermission.setSelected(true);
+	    }
 
 	    HBox permissionsBox = new HBox(10, studentPermission, instructorPermission, adminPermission);
 	    permissionsBox.setAlignment(Pos.CENTER_LEFT);
 
-	    VBox fieldsBox = new VBox(10);  // Vertical container for all text fields
+	    VBox fieldsBox = new VBox(10);
 	    fieldsBox.setPadding(new Insets(10));
-	    
-	    TextField text_title = new TextField();																
+
+	    TextField text_title = new TextField();
 	    Label label_title = new Label("Title:");
 	    VBox titlebox = new VBox(5, label_title, text_title);
-	    //set the text of the title textbox via id
 	    text_title.setText(title2);
-	    
-	    
-	    TextField text_descriptor = new TextField();														
+
+	    TextField text_descriptor = new TextField();
 	    Label label_descriptor = new Label("Descriptor:");
 	    VBox descbox = new VBox(5, label_descriptor, text_descriptor);
-	    //set the text of the descriptor textbox via id
 	    text_descriptor.setText(descriptor2);
-	    
-	    TextField text_keywords = new TextField();															
+
+	    TextField text_keywords = new TextField();
 	    Label label_keywords = new Label("Keywords:");
 	    VBox keywordbox = new VBox(5, label_keywords, text_keywords);
-	    //set the text of the keywords textbox via id
 	    text_keywords.setText(keywords2);
-	    
-	    TextArea bodyField = new TextArea();																
-	    bodyField.setPrefRowCount(8);  // Multiline input
 
+	    TextArea bodyField = new TextArea();
+	    bodyField.setPrefRowCount(8);
 	    Label bodyLabel = new Label("Body:");
-	    VBox bodyBox = new VBox(5, bodyLabel, bodyField); 
-	    //set the text of the body textbox via id
+	    VBox bodyBox = new VBox(5, bodyLabel, bodyField);
 	    bodyField.setText(body2);
 
-	    TextField text_reference = new TextField();															//TODO set each if active
+	    TextField text_reference = new TextField();
 	    Label label_reference = new Label("Reference:");
 	    VBox referencebox = new VBox(5, label_reference, text_reference);
-	    //set the text of the reference textbox via id
 	    text_reference.setText(reference2);
 
-	    // Add all fields to the VBox
 	    fieldsBox.getChildren().addAll(
-	    		titlebox, descbox, keywordbox, bodyBox, referencebox
+	        titlebox, descbox, keywordbox, bodyBox, referencebox
 	    );
-	    
-	    
-	    
-	    
-	    // === Revert Changes Button ===																	
-	    Button revertChangesButton = new Button("Revert Changes");
-	    revertChangesButton.setOnAction(e -> {
-	    	createArticleStage.close();
+
+	    Button revertButton = new Button("Revert Changes");
+	    revertButton.setOnAction(e -> {
+	        createArticleStage.close();
 	    });
-	    
-	    
-	    
-	    // === Create Button ===																			//TODO MAKE THIS AN UPDATE BUTTON
-	    Button createButton = new Button("Save Changes");
-	    createButton.setOnAction(e -> {
-	    	String level = "";
-	    	if (levelGroup.getSelectedToggle() != null) {
-	    	    level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
-	    	} else {
-	    	    label_error.setText("Please select a level.");  // Example: Set error message
-	    	    label_error.setManaged(true);
-	    	    label_error.setVisible(true);
-	    	    return;  // Stop further processing if a level isn't selected
-	    	}
-	    	String groups = groupsText.getText();
+
+	    Button updateButton = new Button("Save Changes");
+	    updateButton.setOnAction(e -> {
+	        String level = "";
+	        if (levelGroup.getSelectedToggle() != null) {
+	            level = ((RadioButton) levelGroup.getSelectedToggle()).getText();
+	        } else {
+	            label_error.setText("Please select a level.");
+	            label_error.setManaged(true);
+	            label_error.setVisible(true);
+	            return;
+	        }
+
+	        String groups = groupsText.getText();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
 	        String permissions = "";
 	        if (student) {
-	        	permissions += "student;";
+	            permissions += "student;";
 	        }
 	        if (instructor) {
-	        	permissions += "instructor;";
+	            permissions += "instructor;";
 	        }
 	        if (admin) {
-	        	permissions += "admin;";
+	            permissions += "admin;";
 	        }
 	        if (permissions.endsWith(";")) {
 	            permissions = permissions.substring(0, permissions.length() - 1);
@@ -729,37 +706,52 @@ public class ArticleAPageUI {
 	        String body = bodyField.getText();
 	        String reference = text_reference.getText();
 
-	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || text_keywords.getText().isEmpty() || 
-	        		bodyField.getText().isEmpty() || text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
-	        	label_error.setManaged(true);
-	        	label_error.setVisible(true);
-	        	
+	        if (text_title.getText().isEmpty() || text_descriptor.getText().isEmpty() || 
+	            text_keywords.getText().isEmpty() || bodyField.getText().isEmpty() || 
+	            text_reference.getText().isEmpty() || levelGroup.getSelectedToggle() == null) {
+	            label_error.setManaged(true);
+	            label_error.setVisible(true);
+	            label_groupError.setManaged(false);
+	            label_groupError.setVisible(false);
 	        } else {
-	        	try {
-	        		label_error.setManaged(false);
-	            	label_error.setVisible(false);
-		        	gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, groups, permissions, title, descriptor, keywords, body, reference);
-	        	}
-	        	catch (Exception ex) {
-	        		ex.printStackTrace();
-	        	}
-	            createArticleStage.close();  // Close popup on success
+	            try {
+	                // Check if all groups exist before proceeding
+	                if (!groups.isEmpty() && !gp360EdDisc_GUIdriver.getDBHelper().doGroupsExist(groups)) {
+	                    label_groupError.setManaged(true);
+	                    label_groupError.setVisible(true);
+	                    label_error.setManaged(false);
+	                    label_error.setVisible(false);
+	                    return;
+	                }
+
+	                label_error.setManaged(false);
+	                label_error.setVisible(false);
+	                label_groupError.setManaged(false);
+	                label_groupError.setVisible(false);
+	                gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, groups, permissions, 
+	                    title, descriptor, keywords, body, reference);
+	                createArticleStage.close();
+	            } catch (Exception ex) {
+	                ex.printStackTrace();
+	            }
 	        }
 	    });
 
-	    VBox mainLayout = new VBox(15, 
-	        levelLabel, levelBox, 
-	        groupLabel, groupBox, 
-	        permissionsLabel, permissionsBox, 
-	        fieldsBox, label_error, createButton, revertChangesButton
+	    HBox buttonBox = new HBox(10, updateButton, revertButton);
+	    buttonBox.setAlignment(Pos.CENTER);
+
+	    VBox mainLayout = new VBox(15,
+	        levelLabel, levelBox,
+	        groupLabel, groupBox,
+	        permissionsLabel, permissionsBox,
+	        fieldsBox, label_error, label_groupError, buttonBox
 	    );
 	    mainLayout.setAlignment(Pos.TOP_LEFT);
 	    mainLayout.setPadding(new Insets(20));
 
-	    // === Set Scene and Show Popup ===
 	    Scene scene = new Scene(mainLayout, 500, 650);
 	    createArticleStage.setScene(scene);
-	    createArticleStage.showAndWait();  // Wait for user input
+	    createArticleStage.showAndWait();
 	}
 	
 	private void handleDeleteArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
@@ -835,29 +827,32 @@ public class ArticleAPageUI {
 		}	
 	}
 	
-	private void handleListArticles(gp360EdDisc_GUIdriver driver) throws SQLException{
-		// Create a new stage for the popup
-		Stage listArticlesStage = new Stage();
-		listArticlesStage.setTitle("Article List");
-		listArticlesStage.initModality(Modality.APPLICATION_MODAL);
-		
-		// Get checkbox states
-		boolean allSelected = check_All.isSelected();
-		boolean eclipseSelected = check_Eclipse.isSelected();
-		boolean intellijSelected = check_IntelliJ.isSelected();
-		
-		// generate articles list
-		String articlesList = gp360EdDisc_GUIdriver.getDBHelper().listArticles(eclipseSelected, intellijSelected, allSelected);
-		
-		// scrollable text area to display articlesList
-		TextArea articlesDisplay = new TextArea(articlesList);
+	private void handleListArticles(gp360EdDisc_GUIdriver driver) throws SQLException {
+	    // Create a new stage for the popup
+	    Stage listArticlesStage = new Stage();
+	    listArticlesStage.setTitle("Article List");
+	    listArticlesStage.initModality(Modality.APPLICATION_MODAL);
+	    
+	    // Get checkbox state for "All Articles"
+	    boolean allSelected = check_All.isSelected();
+	    
+	    // Get groups from the text field and split by comma
+	    String groupsInput = text_groups.getText().trim();
+	    String[] selectedGroups = groupsInput.isEmpty() ? new String[0] : 
+	                            groupsInput.split(",\\s*");  // Split by comma and optional whitespace
+	    
+	    // Generate articles list
+	    String articlesList = gp360EdDisc_GUIdriver.getDBHelper().listArticles(selectedGroups, allSelected);
+	    
+	    // Scrollable text area to display articlesList
+	    TextArea articlesDisplay = new TextArea(articlesList);
 	    articlesDisplay.setEditable(false);
 	    articlesDisplay.setWrapText(true);
 	    articlesDisplay.setPrefRowCount(20);
 	    articlesDisplay.setPrefWidth(600);
 	    articlesDisplay.setPrefHeight(400);
 	    
-	    // button to close out of popup
+	    // Button to close out of popup
 	    Button closeButton = new Button("Close");
 	    closeButton.setOnAction(e -> listArticlesStage.close());
 	    
@@ -866,16 +861,14 @@ public class ArticleAPageUI {
 	    mainLayout.getChildren().addAll(articlesDisplay, closeButton);
 	    mainLayout.setAlignment(Pos.CENTER);
 	    
-	    // Create scene for stage
+	    // Create and set scene for stage
 	    Scene scene = new Scene(mainLayout);
-	    
-	    // Set scene for stage
 	    listArticlesStage.setScene(scene);
 	    
 	    listArticlesStage.setMinWidth(650);
 	    listArticlesStage.setMinHeight(500);
 	    
-	    listArticlesStage.showAndWait(); // shows the popup till you manually close it
+	    listArticlesStage.showAndWait();
 	}
 	
 	private void handleBackupToFile(gp360EdDisc_GUIdriver driver) throws SQLException{

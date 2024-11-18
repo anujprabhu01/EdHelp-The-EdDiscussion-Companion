@@ -113,6 +113,11 @@ public class gp360EdDisc_GUIdriver extends Application {
 		ArticleAPageUI articleAPage = new ArticleAPageUI(theRoot, this);
 	}
 	
+	public void loadGroupPage() {
+		theRoot.getChildren().clear();
+		GroupManagerPageUI groupPage = new GroupManagerPageUI(theRoot, this);
+	}
+	
 	public void showPopupWindow() {
 		try {
 			Stage popupStage = new Stage();
@@ -232,6 +237,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 
 	        Button btn_Article = new Button("Article Manager");
 	        Button btn_Account = new Button("Account Manager");
+	        Button btn_Group = new Button("Group Manager");
 	        
 
 	        // Event handling should be set before calling showAndWait
@@ -244,8 +250,13 @@ public class gp360EdDisc_GUIdriver extends Application {
 	            loadArticleAPage();
 	            popupStage.close(); // Close the pop-up
 	        });
+	        
+	        btn_Group.setOnAction(e -> {
+	            loadGroupPage();
+	            popupStage.close(); // Close the pop-up
+	        });
 
-	        HBox buttonLayout = new HBox(10, btn_Account, btn_Article);
+	        HBox buttonLayout = new HBox(10, btn_Account, btn_Article, btn_Group);
 	        buttonLayout.setAlignment(Pos.CENTER);
 
 	        VBox layout = new VBox(20, label_roleSelect, buttonLayout); // 20 is the spacing between the label and buttons
@@ -261,15 +272,22 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        btn_Article.setVisible(false);
 	        btn_Article.setManaged(false);
 	        
+	        btn_Group.setVisible(false);
+	        btn_Group.setManaged(false);
+	        
 	        if (getDBHelper().isInstructorForUsers(USERNAME) && CURRENT_SESSION.equals("INSTRUCTOR")) { //
 	        	btn_Article.setVisible(true);
 	        	btn_Article.setManaged(true);
+	        	btn_Group.setVisible(true);
+		        btn_Group.setManaged(true);
 	        }
 	        else if (getDBHelper().isAdminForUsers(USERNAME) && CURRENT_SESSION.equals("ADMIN")) {
 	        	btn_Article.setVisible(true);
 	        	btn_Article.setManaged(true);
 	        	btn_Account.setVisible(true);
 	        	btn_Account.setManaged(true);
+	        	btn_Group.setVisible(true);
+		        btn_Group.setManaged(true);
 	        }
 
 	        // Show and wait should be called after everything is set

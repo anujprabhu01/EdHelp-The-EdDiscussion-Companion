@@ -885,20 +885,8 @@ class DatabaseHelper {
 	}
 	
 	// function to print articles, either by group, or all articles
-	public String listArticles(boolean eclipse, boolean intellij, boolean all) {
+	public String listArticles(String[] selectedGroups, boolean all) {
 	    StringBuilder query = new StringBuilder("SELECT * FROM ARTICLES");
-	    
-	    if (!all && (eclipse || intellij)) {
-	        query.append(" WHERE ");
-	        
-	        if (eclipse && intellij) {
-	            query.append("(ECLIPSEGROUP = TRUE OR INTELLIJGROUP = TRUE)");
-	        } else if (eclipse) {
-	            query.append("ECLIPSEGROUP = TRUE");
-	        } else if (intellij) {
-	            query.append("INTELLIJGROUP = TRUE");
-	        }
-	    }
 	    
 	    StringBuilder result = new StringBuilder();
 	    result.append("\n====================================\n");
@@ -912,8 +900,7 @@ class DatabaseHelper {
 	            // Get all fields from the article
 	            int id = rs.getInt("ID");
 	            String level = rs.getString("LEVEL");
-	            boolean eclipseGroup = rs.getBoolean("ECLIPSEGROUP");
-	            boolean intellijGroup = rs.getBoolean("INTELLIJGROUP");
+	            String groups = rs.getString("GROUPS");
 	            String permissions = rs.getString("PERMISSIONS");
 	            String title = rs.getString("TITLE");
 	            String descriptor = rs.getString("DESCRIPTOR");
@@ -921,31 +908,50 @@ class DatabaseHelper {
 	            String body = rs.getString("BODY");
 	            String reference = rs.getString("REFERENCE");
 	            
-	            // Format the output with more spacing and decoration
-	            result.append(String.format(
-	                "📑 Article ID: %d\n" +
-	                "------------------------------------\n" +
-	                "📚 Level: %s\n" +
-	                "🔷 Groups:\n" +
-	                "   Eclipse: %s\n" +
-	                "   IntelliJ: %s\n" +
-	                "🔒 Permissions: %s\n\n" +
-	                "📌 Title: %s\n" +
-	                "📝 Descriptor: %s\n" +
-	                "🏷️ Keywords: %s\n\n" +
-	                "📄 Body:\n%s\n\n" +
-	                "📚 Reference:\n%s\n" +
-	                "\n====================================\n\n",
-	                id, 
-	                level, 
-	                eclipseGroup ? "Yes" : "No", 
-	                intellijGroup ? "Yes" : "No", 
-	                permissions, 
-	                title, 
-	                descriptor, 
-	                keywords, 
-	                body, 
-	                reference));
+	            // Check if we should include this article
+	            boolean includeArticle = all;  // Include if "All" is selected
+	            
+	            if (!all && selectedGroups.length > 0) {
+	                // Split the article's groups by comma and trim each group
+	                String[] articleGroups = groups.split(",\\s*");
+	                
+	                // Check if any of the selected groups match this article's groups
+	                for (String selectedGroup : selectedGroups) {
+	                    String trimmedSelectedGroup = selectedGroup.trim();
+	                    for (String articleGroup : articleGroups) {
+	                        if (articleGroup.trim().equalsIgnoreCase(trimmedSelectedGroup)) {
+	                            includeArticle = true;
+	                            break;
+	                        }
+	                    }
+	                    if (includeArticle) break;  // No need to check other groups if we found a match
+	                }
+	            }
+	            
+	            // If we should include this article, add it to the result
+	            if (includeArticle) {
+	                result.append(String.format(
+	                    "📑 Article ID: %d\n" +
+	                    "------------------------------------\n" +
+	                    "📚 Level: %s\n" +
+	                    "🔷 Groups: %s\n" +
+	                    "🔒 Permissions: %s\n\n" +
+	                    "📌 Title: %s\n" +
+	                    "📝 Descriptor: %s\n" +
+	                    "🏷️ Keywords: %s\n\n" +
+	                    "📄 Body:\n%s\n\n" +
+	                    "📚 Reference:\n%s\n" +
+	                    "\n====================================\n\n",
+	                    id, 
+	                    level, 
+	                    groups, 
+	                    permissions, 
+	                    title, 
+	                    descriptor, 
+	                    keywords, 
+	                    body, 
+	                    reference));
+	            }
 	        }
 	    } catch (SQLException e) {
 	        e.printStackTrace();
@@ -976,5 +982,29 @@ class DatabaseHelper {
 			e.printStackTrace();
 			return false; // return false if exception is caught
 		}
+	}
+	
+	public boolean doGroupsExist(String groupsString) throws SQLException {
+	    // Split the groups string by semicolon and trim each group
+	    String[] groups = groupsString.split(",");
+	    
+	    for (String group : groups) {
+	        String trimmedGroup = group.trim();
+	        if (!trimmedGroup.isEmpty()) {
+	            String query = "SELECT COUNT(*) FROM groups WHERE groupName = ?";
+	            try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	                pstmt.setString(1, trimmedGroup);
+	                ResultSet rs = pstmt.executeQuery();
+	                if (rs.next()) {
+	                    if (rs.getInt(1) == 0) {
+	                        // If any group doesn't exist, return false
+	                        return false;
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    // All groups exist
+	    return true;
 	}
 }
