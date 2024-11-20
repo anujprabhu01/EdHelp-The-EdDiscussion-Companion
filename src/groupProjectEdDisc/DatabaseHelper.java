@@ -587,20 +587,6 @@ class DatabaseHelper {
 
 	}
 
-	public boolean deleteUser(String username) {
-		String deleteSQL = "DELETE FROM cse360users WHERE username = ?";
-
-		try (PreparedStatement preparedStatement = connection.prepareStatement(deleteSQL)) {
-			preparedStatement.setString(1, username); // Set the username in the query
-
-			int rowsAffected = preparedStatement.executeUpdate();
-			return rowsAffected > 0; // Return true if the user was deleted
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false; // Return false if an error occurs
-		}
-	}
-
 	//////////////////// Changed FUNCTION JAKE
 	public String listUserAccounts() {
 		String query = "SELECT username, firstName, lastName, admin, instructor, student FROM cse360users";
