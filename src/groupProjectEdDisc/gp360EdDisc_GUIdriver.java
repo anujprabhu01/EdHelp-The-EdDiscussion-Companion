@@ -48,6 +48,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public final static double WINDOW_HEIGHT = 500;
 	public static String USERNAME = "";
 	public static String CURRENT_SESSION = "";
+	public static String CURRENT_SEARCH_GROUP = "";
 	
 	private Scene scene;
 	private Pane theRoot;
@@ -67,7 +68,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 		theStage.setScene(scene);						// Set the scene on the stage
 		
 		theStage.show();									// Show the stage to the user
-		if (databaseHelper.isDatabaseEmpty()) { //FIXME Should check if database is empty
+		if (databaseHelper.isDatabaseEmpty()) { 
 			loadCreateAccountPage();
 		} else {
 			loadloginPage();
@@ -90,9 +91,9 @@ public class gp360EdDisc_GUIdriver extends Application {
 		FinishAccountSetupUI finishAccountPage = new FinishAccountSetupUI(theRoot, this);
 	}
 	
-	public void loadUserAccount() {
+	public void searchPage() {
 		theRoot.getChildren().clear();
-		UserAccountPageUI userAccountPage = new UserAccountPageUI(theRoot, this);
+		SearchPageUI searchPage = new SearchPageUI(theRoot, this);
 		CURRENT_SESSION = "USER";
 	}
 	
@@ -141,7 +142,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        });
 
 	        btn_Student.setOnAction(e -> {
-	            loadUserAccount();
+	            searchPage();
 	            popupStage.close(); // Close the pop-up
 	        });
 
@@ -238,6 +239,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        Button btn_Article = new Button("Article Manager");
 	        Button btn_Account = new Button("Account Manager");
 	        Button btn_Group = new Button("Group Manager");
+	        Button btn_Search = new Button("Search Page");
 	        
 
 	        // Event handling should be set before calling showAndWait
@@ -255,8 +257,13 @@ public class gp360EdDisc_GUIdriver extends Application {
 	            loadGroupPage();
 	            popupStage.close(); // Close the pop-up
 	        });
+	        
+	        btn_Search.setOnAction(e -> {
+	        	searchPage();
+	            popupStage.close(); // Close the pop-up
+	        });
 
-	        HBox buttonLayout = new HBox(10, btn_Account, btn_Article, btn_Group);
+	        HBox buttonLayout = new HBox(10, btn_Account, btn_Article, btn_Group, btn_Search);
 	        buttonLayout.setAlignment(Pos.CENTER);
 
 	        VBox layout = new VBox(20, label_roleSelect, buttonLayout); // 20 is the spacing between the label and buttons
@@ -275,11 +282,16 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        btn_Group.setVisible(false);
 	        btn_Group.setManaged(false);
 	        
+	        btn_Search.setVisible(false);
+	        btn_Search.setManaged(false);
+	        
 	        if (getDBHelper().isInstructorForUsers(USERNAME) && CURRENT_SESSION.equals("INSTRUCTOR")) { //
 	        	btn_Article.setVisible(true);
 	        	btn_Article.setManaged(true);
 	        	btn_Group.setVisible(true);
 		        btn_Group.setManaged(true);
+		        btn_Search.setVisible(true);
+		        btn_Search.setManaged(true);
 	        }
 	        else if (getDBHelper().isAdminForUsers(USERNAME) && CURRENT_SESSION.equals("ADMIN")) {
 	        	btn_Article.setVisible(true);

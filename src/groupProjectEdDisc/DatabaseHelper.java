@@ -70,7 +70,9 @@ class DatabaseHelper {
 				+ "instructor BOOLEAN, "
 				+ "student BOOLEAN, "
 				+ "finishedSetup BOOLEAN, "
-				+ "needsPassReset BOOLEAN)";
+				+ "needsPassReset BOOLEAN, "
+				+ "specificRequests VARCHAR(255), "
+				+ "generalRequests  VARCHAR(255)) ";
 		
 		String invitationTable = "CREATE TABLE IF NOT EXISTS invitations ("
 	            + "code VARCHAR(255) PRIMARY KEY, "
@@ -115,9 +117,113 @@ class DatabaseHelper {
 		}
 		return true;
 	}
+	
+	public boolean groupExists(String group) {
+	    String query = "SELECT COUNT(*) FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        
+	        pstmt.setString(1, group);
+	        ResultSet rs = pstmt.executeQuery();
+	        
+	        if (rs.next()) {
+	            // If the count is greater than 0, the group exists
+	            return rs.getInt(1) > 0;
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false; // If an error occurs, assume group doesn't exist
+	}
+	
+	public String search(String wp, String group, String level) {
+	    String query = "SELECT * FROM articles WHERE 1=1";
+	    
+	    if (!"".equals(group)) {
+	        query += " AND LOWER(groups) LIKE LOWER(?)";  
+	    }
+	    
+	    if (!"all".equalsIgnoreCase(level)) {
+	        query += " AND LOWER(level) = LOWER(?)";  
+	    }
+	    
+	    query += " AND (LOWER(title) LIKE LOWER(?) OR LOWER(descriptor) LIKE LOWER(?) OR LOWER(keywords) LIKE LOWER(?))";
+
+	    int count = 0;
+	    StringBuilder searchResults = new StringBuilder();
+	    String front = "Active Group: " + (group.isEmpty() ? "None" : group) + "\nArticles found: ";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        int index = 1;
+
+	        // Set parameters for group filter, if necessary
+	        if (!"".equalsIgnoreCase(group)) {
+	            pstmt.setString(index++, "%" + group + "%"); 
+	        }
+
+	        // Set parameters for level filter, if necessary
+	        if (!"all".equalsIgnoreCase(level)) {
+	            pstmt.setString(index++, level);
+	        }
+
+	        String searchPattern = "%" + wp.trim() + "%";
+	        pstmt.setString(index++, searchPattern);
+	        pstmt.setString(index++, searchPattern);
+	        pstmt.setString(index, searchPattern);
+	        
+
+	        // Execute the query and process the results
+	        ResultSet rs = pstmt.executeQuery();
+	        while (rs.next()) {
+	            count++;
+	            // Construct formatted search results
+	            searchResults.append("ID: ").append(rs.getLong("id"))
+	                         .append(", Title: ").append(rs.getString("title"))
+	                         .append(", Level: ").append(rs.getString("level"))
+	                         .append(", Descriptor: ").append(rs.getString("descriptor"))
+	                         .append("\n");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return "Error during search execution.";
+	    }
+	    String divider = "================================================\n";
+	    return front + count + "\n" + divider + searchResults.toString();
+	}
+	
+	public String listGroup(String group) {
+	    StringBuilder result = new StringBuilder();
+	    result.append("Articles in Group: ").append(group).append("\n");
+	    String query = "SELECT * FROM articles WHERE groups LIKE ?";
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, "%" + group + "%");
+	        
+	        ResultSet rs = pstmt.executeQuery();
+
+	        int count = 0;
+	        while (rs.next()) {
+	            count++;
+	            result.append("ID: ").append(rs.getLong("id"))
+		              .append(", Title: ").append(rs.getString("title"))
+		              .append(", Level: ").append(rs.getString("level"))
+		              .append(", Descriptor: ").append(rs.getString("descriptor"))
+		              .append("\n");
+	        }
+
+	        if (count == 0) {
+	            result.append("\nNo articles found in this group.");
+	        }
+
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return "Error retrieving articles.";
+	    }
+
+	    return result.toString();
+	}
 
 	public void register(String username, String password, boolean admin, boolean instructor, boolean student , boolean finishedSetup, boolean needsPassReset) throws SQLException {
-		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String insertUser = "INSERT INTO cse360users (username, password, email, firstName, middleName, lastName, prefName, admin, instructor, student, finishedSetup, needsPassReset, specificRequests, generalRequests) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(insertUser)) {
 			pstmt.setString(1, username);
 			pstmt.setString(2, password);
@@ -131,6 +237,8 @@ class DatabaseHelper {
 			pstmt.setBoolean(10, student);
 			pstmt.setBoolean(11, finishedSetup);
 			pstmt.setBoolean(12, needsPassReset);
+			pstmt.setString(13, "");
+			pstmt.setString(14, "");
 			
 			pstmt.executeUpdate();
 		}
@@ -174,6 +282,68 @@ class DatabaseHelper {
 		}
 	
 	}
+	
+	public void sendGeneralRequest(String request) throws SQLException {
+		String user = gp360EdDisc_GUIdriver.USERNAME;
+		String querySelect = "SELECT generalRequests FROM cse360users WHERE username = ?";
+	    String queryUpdate = "UPDATE cse360users SET generalRequests = ? WHERE username = ?";
+
+	    try (PreparedStatement pstmtSelect = connection.prepareStatement(querySelect);
+	            PreparedStatement pstmtUpdate = connection.prepareStatement(queryUpdate)) {
+
+	           // Fetch the current value of generalRequests
+	           pstmtSelect.setString(1, user);
+	           ResultSet rs = pstmtSelect.executeQuery();
+	           String currentRequests = "";
+	           if (rs.next()) {
+	               currentRequests = rs.getString("generalRequests");
+	           }
+
+	           // Append the new request
+	           if (currentRequests != null && !currentRequests.isEmpty()) {
+	               currentRequests += request + ";";
+	           } else {
+	               currentRequests = request + ";";
+	           }
+
+	           // Update the database
+	           pstmtUpdate.setString(1, currentRequests);
+	           pstmtUpdate.setString(2, user);
+	           pstmtUpdate.executeUpdate();
+	       }
+	}
+	
+	public void sendSpecificRequest(String request) throws SQLException {
+		String user = gp360EdDisc_GUIdriver.USERNAME;
+	    String querySelect = "SELECT specificRequests FROM cse360users WHERE username = ?";
+	    String queryUpdate = "UPDATE cse360users SET specificRequests = ? WHERE username = ?";
+
+	    try (PreparedStatement pstmtSelect = connection.prepareStatement(querySelect);
+	         PreparedStatement pstmtUpdate = connection.prepareStatement(queryUpdate)) {
+
+	        // Fetch the current value of specificRequests
+	        pstmtSelect.setString(1, user);
+	        ResultSet rs = pstmtSelect.executeQuery();
+	        String currentRequests = "";
+	        if (rs.next()) {
+	            currentRequests = rs.getString("specificRequests");
+	        }
+
+	        // Append the new request
+	        if (currentRequests != null && !currentRequests.isEmpty()) {
+	            currentRequests += request + ";";
+	        } else {
+	            currentRequests = request + ";";
+	        }
+
+	        // Update the database
+	        pstmtUpdate.setString(1, currentRequests);
+	        pstmtUpdate.setString(2, user);
+	        pstmtUpdate.executeUpdate();
+	    }
+	}
+	
+	
 	
 	public boolean hasTwoOrMoreRoles() throws SQLException {
 		String username = gp360EdDisc_GUIdriver.USERNAME;

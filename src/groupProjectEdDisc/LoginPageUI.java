@@ -139,7 +139,7 @@ public class LoginPageUI {
 					driver.loadInstructorAccount();
 				}
 				else {
-					driver.loadUserAccount();
+					driver.searchPage();
 				}
 			}
 		}

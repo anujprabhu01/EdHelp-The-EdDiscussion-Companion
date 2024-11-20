@@ -122,7 +122,7 @@ public class FinishAccountSetupUI {
 				driver.loadInstructorAccount();
 			}
 			else {
-				driver.loadUserAccount();
+				driver.searchPage();
 			}
 		}
 		//driver.loadUserAccount();
