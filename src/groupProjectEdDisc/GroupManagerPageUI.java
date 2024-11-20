@@ -6,7 +6,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -17,6 +19,11 @@ public class GroupManagerPageUI {
     private Label label_ApplicationTitle = new Label("Group Manager");
     private Button btn_logOut = new Button("Log Out");
     private Button btn_menu = new Button("Menu");
+
+    // Active Group Section
+    private Label label_activeGroup = new Label("Currently active group:");
+    private CheckBox check_activeGroup = new CheckBox();
+    private TextField text_groupNameDisplay = new TextField();
 
     // Create Group section
     private Label label_createGroup = new Label("Create Group");
@@ -57,12 +64,14 @@ public class GroupManagerPageUI {
 
     // List Access section
     private Label label_listAccess = new Label("List Access");
-    private Label label_listGroupName = new Label("Group Name");
-    private TextField text_listGroupName = new TextField();
     private Button btn_listStudents = new Button("List Students");
     private Button btn_listInstructors = new Button("List Instructors");
     private Button btn_listAdmins = new Button("List Admins");
     private VBox listAccessBox;
+    
+    private Label label_groupNameEmpty = new Label("Please enter a group name");
+    private Label label_groupExists = new Label("A group with this name already exists");
+    private Label label_systemError = new Label("System error occurred. Please try again");
 
     public GroupManagerPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
         // Setup top bar
@@ -79,10 +88,16 @@ public class GroupManagerPageUI {
         btn_logOut.setMaxWidth(100);
 
         // Main container for all sections
-        VBox mainContainer = new VBox(10); // 10 pixels spacing between sections
+        VBox mainContainer = new VBox(10);
         mainContainer.setLayoutX(10);
         mainContainer.setLayoutY(50);
-        mainContainer.setPrefWidth(480); // Leaving 10px margin on each side
+        mainContainer.setPrefWidth(480);
+
+        // Active Group Section setup
+        HBox activeGroupBox = new HBox(10);
+        setupLabelUI(label_activeGroup, "Arial", 14, 200, Pos.BASELINE_LEFT, 0, 0);
+        check_activeGroup.setSelected(false);
+        activeGroupBox.getChildren().addAll(check_activeGroup, label_activeGroup, text_groupNameDisplay);
 
         // Create Group section setup
         createGroupBox = new VBox(5);
@@ -94,6 +109,8 @@ public class GroupManagerPageUI {
         HBox createNameBox = new HBox(10);
         text_createGroupName.setPrefWidth(150);
         createNameBox.getChildren().addAll(label_groupName, text_createGroupName, btn_createGroup);
+        
+        btn_createGroup.setOnAction(e -> handleCreateGroup());
         
         createGroupBox.getChildren().addAll(label_createGroup, specialAccessBox, createNameBox);
 
@@ -141,54 +158,218 @@ public class GroupManagerPageUI {
         listAccessBox = new VBox(5);
         setupLabelUI(label_listAccess, "Arial", 14, 200, Pos.BASELINE_LEFT, 0, 0);
         
-        HBox listNameBox = new HBox(10);
-        text_listGroupName.setPrefWidth(150);
-        listNameBox.getChildren().addAll(label_listGroupName, text_listGroupName);
-        
         HBox listButtonsBox = new HBox(10);
-        // Make buttons smaller
         btn_listStudents.setPrefWidth(100);
         btn_listInstructors.setPrefWidth(100);
         btn_listAdmins.setPrefWidth(100);
         listButtonsBox.getChildren().addAll(btn_listStudents, btn_listInstructors, btn_listAdmins);
         
-        listAccessBox.getChildren().addAll(label_listAccess, listNameBox, listButtonsBox);
+        listAccessBox.getChildren().addAll(label_listAccess, listButtonsBox);
 
         // Add all sections to main container
         mainContainer.getChildren().addAll(
-            createGroupBox, deleteGroupBox, studentBox,
+            activeGroupBox, createGroupBox, deleteGroupBox, studentBox,
             instructorBox, adminBox, listAccessBox
         );
 
-        // Add event handlers
+        // Set up initial state of controls and role-based access
+        updateControlStates();
+        configureRoleBasedAccess();
+
+        // Add checkbox listener for active group
+        check_activeGroup.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            updateControlStates();
+            configureRoleBasedAccess();
+        });
+
+        // Add event handlers for buttons
         btn_menu.setOnAction(e -> {
-        	try {
-        		// Handle menu click
-            	handleMenu(driver);
-        	}
-        	catch(SQLException ex) {
-        		ex.printStackTrace();
-        	}
+            try {
+                handleMenu(driver);
+            } catch(SQLException ex) {
+                ex.printStackTrace();
+            }
         });
 
         btn_logOut.setOnAction(e -> {
             handleLogOut(driver);
         });
+        
+        setupLabelUI(label_groupNameEmpty, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
+            label_groupNameEmpty.setVisible(false);
+            label_groupNameEmpty.setManaged(false);
+
+            setupLabelUI(label_groupExists, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
+            label_groupExists.setVisible(false);
+            label_groupExists.setManaged(false);
+
+            setupLabelUI(label_systemError, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
+            label_systemError.setVisible(false);
+            label_systemError.setManaged(false);
 
         // Add all elements to the root pane
         theRoot.getChildren().addAll(
             label_ApplicationTitle, btn_menu, btn_logOut,
-            mainContainer
+            mainContainer, label_groupNameEmpty, label_groupExists, label_systemError
         );
     }
     
+    private void handleCreateGroup() {
+        // Clear any existing errors
+        hideAllErrors();
+
+        // Get the group name from the text field
+        String groupName = text_createGroupName.getText().trim();
+        
+        // Validate group name
+        if (groupName.isEmpty()) {
+            showError(label_groupNameEmpty);
+            return;
+        }
+
+        // Get special access status
+        boolean isSpecialAccess = check_specialAccess.isSelected();
+
+        try {
+            boolean success = gp360EdDisc_GUIdriver.getDBHelper().createGroup(groupName, isSpecialAccess);
+            if (success) {
+                // Clear the input fields
+                text_createGroupName.clear();
+                check_specialAccess.setSelected(false);
+                hideAllErrors();
+                
+                // Show success message
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Success");
+                alert.setHeaderText(null);
+                alert.setContentText("Group created successfully!");
+                alert.showAndWait();
+            } else {
+                // Show error that group name already exists
+            	text_createGroupName.clear();
+                check_specialAccess.setSelected(false);
+                showError(label_groupExists);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(label_systemError);
+        }
+    }
+
+    private void configureRoleBasedAccess() {
+        String currentSession = gp360EdDisc_GUIdriver.CURRENT_SESSION;
+        
+        if (currentSession.equals("ADMIN")) {
+            // Admins cannot create or delete groups
+            createGroupBox.setDisable(true);
+            createGroupBox.setOpacity(0.5);
+            check_specialAccess.setDisable(true);
+            text_createGroupName.setDisable(true);
+            btn_createGroup.setDisable(true);
+            btn_createGroup.setTooltip(new Tooltip("Administrators cannot create article groups"));
+
+            deleteGroupBox.setDisable(true);
+            deleteGroupBox.setOpacity(0.5);
+            text_deleteGroupName.setDisable(true);
+            btn_deleteGroup.setDisable(true);
+            btn_deleteGroup.setTooltip(new Tooltip("Administrators cannot delete article groups"));
+
+            // Admins can manage all access rights
+            enableAccessManagement(true, true, true);
+        } 
+        else if (currentSession.equals("INSTRUCTOR")) {
+            // Instructors can create and delete groups
+            createGroupBox.setDisable(false);
+            createGroupBox.setOpacity(1.0);
+            deleteGroupBox.setDisable(false);
+            deleteGroupBox.setOpacity(1.0);
+
+            // Instructors can only manage student access
+            enableAccessManagement(true, false, false);
+
+            // Add tooltips for disabled actions
+            btn_addInstructor.setTooltip(new Tooltip("Instructors cannot modify instructor access"));
+            btn_removeInstructor.setTooltip(new Tooltip("Instructors cannot modify instructor access"));
+            btn_addAdmin.setTooltip(new Tooltip("Instructors cannot modify admin access"));
+            btn_removeAdmin.setTooltip(new Tooltip("Instructors cannot modify admin access"));
+            btn_listInstructors.setTooltip(new Tooltip("Instructors cannot view instructor list"));
+            btn_listAdmins.setTooltip(new Tooltip("Instructors cannot view admin list"));
+        }
+    }
+
+    private void enableAccessManagement(boolean students, boolean instructors, boolean admins) {
+        // Student access management
+        text_studentName.setDisable(!students || !check_activeGroup.isSelected());
+        btn_addStudent.setDisable(!students || !check_activeGroup.isSelected());
+        btn_removeStudent.setDisable(!students || !check_activeGroup.isSelected());
+        btn_listStudents.setDisable(!students || !check_activeGroup.isSelected());
+
+        // Instructor access management
+        text_instructorName.setDisable(!instructors || !check_activeGroup.isSelected());
+        btn_addInstructor.setDisable(!instructors || !check_activeGroup.isSelected());
+        btn_removeInstructor.setDisable(!instructors || !check_activeGroup.isSelected());
+        btn_listInstructors.setDisable(!instructors || !check_activeGroup.isSelected());
+
+        // Admin access management
+        text_adminName.setDisable(!admins || !check_activeGroup.isSelected());
+        btn_addAdmin.setDisable(!admins || !check_activeGroup.isSelected());
+        btn_removeAdmin.setDisable(!admins || !check_activeGroup.isSelected());
+        btn_listAdmins.setDisable(!admins || !check_activeGroup.isSelected());
+
+        // Set opacity for visual feedback
+        studentBox.setOpacity(students ? 1.0 : 0.5);
+        instructorBox.setOpacity(instructors ? 1.0 : 0.5);
+        adminBox.setOpacity(admins ? 1.0 : 0.5);
+    }
+
+    private void updateControlStates() {
+        boolean isActiveGroup = check_activeGroup.isSelected();
+
+        // Only update the Create Group section if not an admin
+        if (!gp360EdDisc_GUIdriver.CURRENT_SESSION.equals("ADMIN")) {
+            check_specialAccess.setDisable(isActiveGroup);
+            text_createGroupName.setDisable(isActiveGroup);
+            btn_createGroup.setDisable(isActiveGroup);
+        }
+
+        // Only update the Delete Group section if not an admin
+        if (!gp360EdDisc_GUIdriver.CURRENT_SESSION.equals("ADMIN")) {
+            text_deleteGroupName.setDisable(!isActiveGroup);
+            btn_deleteGroup.setDisable(!isActiveGroup);
+        }
+
+        // Reapply role-based access controls
+        configureRoleBasedAccess();
+    }
+
     private void handleMenu(gp360EdDisc_GUIdriver driver) throws SQLException { 
-		driver.showMenuPopUp(driver.CURRENT_SESSION);
-	}
+        driver.showMenuPopUp(driver.CURRENT_SESSION);
+    }
 
     private void handleLogOut(gp360EdDisc_GUIdriver driver) {
         gp360EdDisc_GUIdriver.USERNAME = "";
         driver.loadloginPage();
+    }
+    
+    private void hideAllErrors() {
+        label_groupNameEmpty.setVisible(false);
+        label_groupNameEmpty.setManaged(false);
+        label_groupExists.setVisible(false);
+        label_groupExists.setManaged(false);
+        label_systemError.setVisible(false);
+        label_systemError.setManaged(false);
+    }
+
+    private void showError(Label errorToShow) {
+        // Hide all existing errors first
+        hideAllErrors();
+        
+        // Show the new error
+        errorToShow.setVisible(true);
+        errorToShow.setManaged(true);
     }
 
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {
@@ -197,5 +378,14 @@ public class GroupManagerPageUI {
         l.setAlignment(alignment);
         l.setLayoutX(x);
         l.setLayoutY(y);
+    }
+    
+    private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color) {
+        l.setFont(Font.font(font, fontSize));
+        l.setMinWidth(width);
+        l.setAlignment(alignment);
+        l.setLayoutX(x);
+        l.setLayoutY(y);
+        l.setStyle("-fx-text-fill: " + color + ";");
     }
 }

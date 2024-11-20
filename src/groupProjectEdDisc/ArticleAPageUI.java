@@ -7,6 +7,7 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -65,6 +66,25 @@ public class ArticleAPageUI {
 	private Button btn_RestoreToBackup = new Button("Restore to Backup");
 	private Button btn_MergeFromBackup = new Button("Merge from Backup");
 	private Label label_noFile = new Label("Please enter a filename");
+	
+	private void configureButtonsForAdmin() {
+	    try {
+	        // Check if current user is logged in as admin session
+	        if (gp360EdDisc_GUIdriver.CURRENT_SESSION.equals("ADMIN")) {
+	            // Disable all article interaction buttons
+	            btn_viewArticle.setDisable(true);
+	            btn_updateArticle.setDisable(true);
+	            btn_listArticles.setDisable(true);
+	            
+	            // Optional: Add tooltip to explain why buttons are disabled
+	            btn_viewArticle.setTooltip(new Tooltip("Administrators cannot view articles"));
+	            btn_updateArticle.setTooltip(new Tooltip("Administrators cannot modify articles"));
+	            btn_listArticles.setTooltip(new Tooltip("Administrators cannot list articles"));
+	        }
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	    }
+	}
 	
 	
 	public ArticleAPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
@@ -253,6 +273,8 @@ public class ArticleAPageUI {
                 ex.printStackTrace();
             }
         });
+        
+        configureButtonsForAdmin();
         
         
         setupLabelUI(label_BackupandRestoreArticles, "Arial", 18, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
@@ -839,7 +861,7 @@ public class ArticleAPageUI {
 	    // Get groups from the text field and split by comma
 	    String groupsInput = text_groups.getText().trim();
 	    String[] selectedGroups = groupsInput.isEmpty() ? new String[0] : 
-	                            groupsInput.split(",\\s*");  // Split by comma and optional whitespace
+	                            groupsInput.split(";\\s*");  // Split by comma and optional whitespace
 	    
 	    // Generate articles list
 	    String articlesList = gp360EdDisc_GUIdriver.getDBHelper().listArticles(selectedGroups, allSelected);

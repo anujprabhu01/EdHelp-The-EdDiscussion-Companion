@@ -85,7 +85,9 @@ public class AdminAccountPageUI {
     
     private Label label_atleastOneRole = new Label("please select at least one role to assign");
     private Label label_usernameForDeletion = new Label("enter username of associated user to delete");
-
+    
+    private Label label_onlySystemAdmin = new Label("Cannot delete user: They are the only administrator in the system");
+    private Label label_onlyGroupAdmin = new Label("Cannot delete user: They are the only admin for one or more groups");
     
 	
 	public AdminAccountPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
@@ -293,25 +295,32 @@ public class AdminAccountPageUI {
         });
         
         
-        setupLabelUI(label_usernameDoesNotExist, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 428, "red");
+        setupLabelUI(label_usernameDoesNotExist, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 130, 442, "red");
         label_usernameDoesNotExist.setVisible(false);
         label_usernameDoesNotExist.setManaged(false);
         //label_selfAdmin
-        setupLabelUI(label_selfAdmin, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 442, "red");
+        setupLabelUI(label_selfAdmin, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 130, 442, "red");
         label_selfAdmin.setVisible(false);
         label_selfAdmin.setManaged(false);
         //label_selectRoles
-        setupLabelUI(label_selectRoles, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 110, 456, "red");
+        setupLabelUI(label_selectRoles, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 130, 442, "red");
         label_selectRoles.setVisible(false);
         label_selectRoles.setManaged(false);
         
+        setupLabelUI(label_onlySystemAdmin, "Arial", 12, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 150, 255, "red");
+        label_onlySystemAdmin.setVisible(false);
+        label_onlySystemAdmin.setManaged(false);
         
-
+        setupLabelUI(label_onlyGroupAdmin, "Arial", 12, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 150, 255, "red");
+        label_onlyGroupAdmin.setVisible(false);
+        label_onlyGroupAdmin.setManaged(false);
         
         theRoot.getChildren().addAll(label_ApplicationTitle ,label_InviteUserEmail, label_InviteUser, text_emailInvite, 
         		label_ResetAccount, text_emailReset, label_ResetUserEmail,label_DeleteAccount, label_DeleteUser, text_UserToDelete,
         		label_AddOrRemoveRoles, label_AddorUser, text_AddorUsername, label_list, label_usernameDoesNotExist, label_selfAdmin,
-        		label_selectRoles,label_usernameForDeletion, label_atleastOneRole);
+        		label_selectRoles,label_usernameForDeletion, label_atleastOneRole, label_onlySystemAdmin, label_onlyGroupAdmin);
     }
 
     /**********************************************************************************************
@@ -389,48 +398,64 @@ public class AdminAccountPageUI {
 	}
 	
 	private void handleDeleteUser(gp360EdDisc_GUIdriver driver) throws SQLException {
-		//Make a pop up occur that asks are you sure you want to delete, if yes delete the user from the database
-		//query if data base contains the textfield
-		//create pop up with yes/no buttons
-		// change to query
-		if(text_UserToDelete.getText().equals("")) { //FIXME implement label
-			System.out.println("enter username of associated user to delete first");
-			label_usernameForDeletion.setVisible(true);
-	        label_usernameForDeletion.setManaged(true);
-		}
-		else {
-			label_usernameForDeletion.setVisible(false);
-	        label_usernameForDeletion.setManaged(false);
-			//first, get username given by admin
-			String username = text_UserToDelete.getText();
-			
-			
-			deleteStage.setTitle("Are you sure?");
-			deleteStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
-			deleteStage.setOnCloseRequest(WindowEvent::consume);
-			noConfirm.setOnAction(e -> {
-				deleteStage.close();
-				driver.loadAdminAccount();
-			});
-			
-			yesConfirm.setOnAction(e -> {
-				boolean success = gp360EdDisc_GUIdriver.getDBHelper().deleteUser(username);
-				if(success) {
-					System.out.println("successful delete by admin");
-					deleteStage.close();
-					driver.loadAdminAccount();
-				}
-				else {
-					System.out.println("unsuccessful delete by admin");
-				}
-			});
-			deletePopup.setAlignment(Pos.CENTER);
-			
-			deleteStage.setScene(popupDeleteScene);
-			deleteStage.showAndWait();
-		}
-}
+	    if (text_UserToDelete.getText().isEmpty()) {
+	        showError(label_usernameForDeletion);
+	        return;
+	    }
 
+	    String username = text_UserToDelete.getText();
+
+	    // Check if user exists
+	    if (!gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(username)) {
+	        showError(label_usernameDoesNotExist);
+	        return;
+	    }
+
+	    // If user is an admin, perform additional checks
+	    if (gp360EdDisc_GUIdriver.getDBHelper().isAdminForUsers(username)) {
+	        // Check if they're the only system admin
+	        if (gp360EdDisc_GUIdriver.getDBHelper().isOnlyAdminInSystem(username)) {
+	            //ONLY ADMIN IN SYSTEM
+	            showError(label_onlySystemAdmin);
+	            return;
+	        }
+
+	        // Check if they're the only admin for any groups
+	        String groupsAsOnlyAdmin = gp360EdDisc_GUIdriver.getDBHelper().getGroupsWithUserAsOnlyAdmin(username);
+	        if (!groupsAsOnlyAdmin.isEmpty()) {
+	            // ONLY ADMIN FOR GROUP
+	        	label_onlyGroupAdmin.setText(label_onlyGroupAdmin.getText());
+	            //label_onlyGroupAdmin.setWrapText(true);
+	            showError(label_onlyGroupAdmin);
+	            return;
+	        }
+	    }
+
+	    // If we get here, it's safe to show the deletion confirmation dialog
+	    deleteStage.setTitle("Are you sure?");
+	    deleteStage.initModality(Modality.APPLICATION_MODAL);
+	    deleteStage.setOnCloseRequest(WindowEvent::consume);
+
+	    noConfirm.setOnAction(e -> {
+	        deleteStage.close();
+	        driver.loadAdminAccount();
+	    });
+
+	    yesConfirm.setOnAction(e -> {
+	        boolean success = gp360EdDisc_GUIdriver.getDBHelper().deleteUser(username);
+	        if (success) {
+	            System.out.println("successful delete by admin");
+	            deleteStage.close();
+	            driver.loadAdminAccount();
+	        } else {
+	            System.out.println("unsuccessful delete by admin");
+	        }
+	    });
+
+	    deletePopup.setAlignment(Pos.CENTER);
+	    deleteStage.setScene(popupDeleteScene);
+	    deleteStage.showAndWait();
+	}
 	
 	private void handleLogOut(gp360EdDisc_GUIdriver driver) {
 		gp360EdDisc_GUIdriver.USERNAME = "";
@@ -475,54 +500,66 @@ public class AdminAccountPageUI {
 	}
 	
 	private void handleSetRoles(gp360EdDisc_GUIdriver driver) {
-		//Set the roles of the listed user in accordance with the checked boxes
-		String AddorUsernameStr2 = text_AddorUsername.getText();
-		boolean text = false;
-		boolean admin = false;
-		boolean student = false;
-		boolean instructor = false;
-		try {
-			text = gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(AddorUsernameStr2);
-		}catch(SQLException se){
-			se.printStackTrace();
-		}
-		if(text) {
-			if(check_AddorAdmin.isSelected() || check_Addorstudent.isSelected() || check_AddorInstructor.isSelected()) {
-				if(check_AddorAdmin.isSelected()) {
-					admin = true;
-				}
-				if(check_AddorInstructor.isSelected()) {
-					instructor = true;
-				}
-				if(check_Addorstudent.isSelected()) {
-					student = true;
-				}
-				if(AddorUsernameStr2.equals(gp360EdDisc_GUIdriver.USERNAME) && !admin) {
-					System.out.print("Cannot change Admin Status of Self");
-					label_selfAdmin.setVisible(true);
-					label_selfAdmin.setManaged(true);
-				}
-				else {
-					try {
-						gp360EdDisc_GUIdriver.getDBHelper().adminRoleSet(admin, instructor, student, AddorUsernameStr2);
-						System.out.print("Success in changing roles");
-						driver.loadAdminAccount();
-					}catch(SQLException se){
-						se.printStackTrace();
-					}
-				}
-			}else {
-				System.out.print("please select at least one checkbox\n");
-				//LABEL NEEDED HEEEEERRRREEEEEEEE
-				label_selectRoles.setVisible(true);
-				label_selectRoles.setManaged(true);
-			}
-		}
-		else {
-			System.out.print("Username not in database\n");
-			label_usernameDoesNotExist.setVisible(true);
-	        label_usernameDoesNotExist.setManaged(true);
-		}
+	    String AddorUsernameStr2 = text_AddorUsername.getText();
+	    boolean text = false;
+	    boolean admin = false;
+	    boolean student = false;
+	    boolean instructor = false;
+
+	    try {
+	        text = gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(AddorUsernameStr2);
+	    } catch(SQLException se) {
+	        se.printStackTrace();
+	    }
+
+	    if (!text) {
+	        showError(label_usernameDoesNotExist);
+	        return;
+	    }
+
+	    if (!check_AddorAdmin.isSelected() && !check_Addorstudent.isSelected() && !check_AddorInstructor.isSelected()) {
+	        showError(label_selectRoles);
+	        return;
+	    }
+
+	    admin = check_AddorAdmin.isSelected();
+	    instructor = check_AddorInstructor.isSelected();
+	    student = check_Addorstudent.isSelected();
+
+	    try {
+	        // If we're removing admin role (current admin but not selected in new roles)
+	        if (gp360EdDisc_GUIdriver.getDBHelper().isAdminForUsers(AddorUsernameStr2) && !admin) {
+	            if (AddorUsernameStr2.equals(gp360EdDisc_GUIdriver.USERNAME)) {
+	                showError(label_selfAdmin);
+	                return;
+	            }
+
+	            // Check if they're the only system admin
+	            if (gp360EdDisc_GUIdriver.getDBHelper().isOnlyAdminInSystem(AddorUsernameStr2)) {
+	                showError(label_onlySystemAdmin);
+	                return;
+	            }
+
+	            // Check if they're the only admin for any groups
+	            String groupsAsOnlyAdmin = gp360EdDisc_GUIdriver.getDBHelper().getGroupsWithUserAsOnlyAdmin(AddorUsernameStr2);
+	            if (!groupsAsOnlyAdmin.isEmpty()) {
+	                //label_onlyGroupAdmin.setWrapText(true);
+	                showError(label_onlyGroupAdmin);
+	                return;
+	            }
+
+	            // If we're removing admin role and it's safe to do so, update the groups table
+	            gp360EdDisc_GUIdriver.getDBHelper().removeAdminFromGroups(AddorUsernameStr2);
+	        }
+
+	        // All checks passed, proceed with role update
+	        gp360EdDisc_GUIdriver.getDBHelper().adminRoleSet(admin, instructor, student, AddorUsernameStr2);
+	        hideAllErrors();
+	        driver.loadAdminAccount();
+
+	    } catch(SQLException se) {
+	        se.printStackTrace();
+	    }
 	}
 	
 ////////////////////NEW FUNCTION JAKE
@@ -605,6 +642,31 @@ public class AdminAccountPageUI {
         }
 
         return sb.toString();
+    }
+    
+    private void hideAllErrors() {
+        label_usernameDoesNotExist.setVisible(false);
+        label_usernameDoesNotExist.setManaged(false);
+        label_selfAdmin.setVisible(false);
+        label_selfAdmin.setManaged(false);
+        label_selectRoles.setVisible(false);
+        label_selectRoles.setManaged(false);
+        label_usernameForDeletion.setVisible(false);
+        label_usernameForDeletion.setManaged(false);
+        label_onlySystemAdmin.setVisible(false);
+        label_onlySystemAdmin.setManaged(false);
+        label_onlyGroupAdmin.setVisible(false);
+        label_onlyGroupAdmin.setManaged(false);
+        // Hide any other error labels you have
+    }
+    
+    private void showError(Label errorToShow) {
+        // Hide all existing errors first
+        hideAllErrors();
+        
+        // Show the new error
+        errorToShow.setVisible(true);
+        errorToShow.setManaged(true);
     }
     
     
