@@ -81,7 +81,7 @@ public class GroupManagerPageUI {
     private TextField text_fileName = new TextField();
     private Button btn_backupToFile = new Button("Backup");
 	private Button btn_RestoreToBackup = new Button("Restore");
-	private Button btn_MergeFromBackup = new Button("Merge");
+	//private Button btn_MergeFromBackup = new Button("Merge");
 	private Label label_noFile = new Label("Please enter a filename");
 	private Label label_noCurrGroup = new Label("No current Group");
 	private VBox backupBox;
@@ -90,6 +90,15 @@ public class GroupManagerPageUI {
     private Label label_groupNameEmpty = new Label("Please enter a group name");
     private Label label_groupExists = new Label("A group with this name already exists");
     private Label label_systemError = new Label("System error occurred. Please try again");
+    
+    private Label label_deleteError = new Label("Error deleting group");
+    private Stage deleteConfirmStage;
+    
+    private Label label_errorAddingStudent = new Label("Error adding student to group");
+    
+    private Label label_errorAddingInstructor = new Label("Error adding instructor to group");
+    
+    private Label label_errorAddingAdmin = new Label("Error adding admin to group");
 
     public GroupManagerPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {
         // Setup top bar
@@ -141,6 +150,19 @@ public class GroupManagerPageUI {
         deleteNameBox.getChildren().addAll(label_deleteGroupName, text_deleteGroupName, btn_deleteGroup);
         
         deleteGroupBox.getChildren().addAll(label_deleteGroup, deleteNameBox);
+        
+        setupDeleteConfirmation();        
+        // Set up delete button action
+        btn_deleteGroup.setOnAction(e -> handleDeleteGroup());
+        
+        // Add the error label to the scene
+        setupLabelUI(label_deleteError, "Arial", 14, driver.WINDOW_WIDTH - 10,
+            Pos.BASELINE_LEFT, 20, deleteGroupBox.getLayoutY() + 68, "red");
+        label_deleteError.setVisible(false);
+        label_deleteError.setManaged(false);
+        
+        // Add to root
+        theRoot.getChildren().add(label_deleteError);
 
         // Student section setup
         studentBox = new VBox(5);
@@ -149,6 +171,8 @@ public class GroupManagerPageUI {
         HBox studentControlBox = new HBox(10);
         text_studentName.setPrefWidth(150);
         studentControlBox.getChildren().addAll(text_studentName, btn_addStudent, btn_removeStudent);
+        
+        btn_addStudent.setOnAction(e -> handleAddStudent());
         
         studentBox.getChildren().addAll(label_student, studentControlBox);
 
@@ -160,6 +184,17 @@ public class GroupManagerPageUI {
         text_instructorName.setPrefWidth(150);
         instructorControlBox.getChildren().addAll(text_instructorName, btn_addInstructor, btn_removeInstructor);
         
+        setupLabelUI(label_errorAddingInstructor, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+        	    Pos.BASELINE_LEFT, 20, instructorControlBox.getLayoutY() + 68, "red");
+        	label_errorAddingInstructor.setVisible(false);
+        	label_errorAddingInstructor.setManaged(false);
+
+        	// Add to root
+        	theRoot.getChildren().add(label_errorAddingInstructor);
+
+        	// Set up the button handler
+        	btn_addInstructor.setOnAction(e -> handleAddInstructor());
+        
         instructorBox.getChildren().addAll(label_instructor, instructorControlBox);
 
         // Admin section setup
@@ -169,6 +204,8 @@ public class GroupManagerPageUI {
         HBox adminControlBox = new HBox(10);
         text_adminName.setPrefWidth(150);
         adminControlBox.getChildren().addAll(text_adminName, btn_addAdmin, btn_removeAdmin);
+        
+        btn_addAdmin.setOnAction(e -> handleAddAdmin());
         
         adminBox.getChildren().addAll(label_admin, adminControlBox);
 
@@ -217,7 +254,7 @@ public class GroupManagerPageUI {
         
         HBox backupControlBox = new HBox(10);
         text_studentName.setPrefWidth(150);
-        backupControlBox.getChildren().addAll(text_fileName, btn_backupToFile, btn_RestoreToBackup, btn_MergeFromBackup);
+        backupControlBox.getChildren().addAll(text_fileName, btn_backupToFile, btn_RestoreToBackup);
         
         setupLabelUI(label_noFile, "Arial", 10, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
                 Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
@@ -291,8 +328,21 @@ public class GroupManagerPageUI {
                 Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
             label_systemError.setVisible(false);
             label_systemError.setManaged(false);
-  
+            
+            setupLabelUI(label_errorAddingStudent, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+            	    Pos.BASELINE_LEFT, 20, studentControlBox.getLayoutY() + 68, "red");
+            	label_errorAddingStudent.setVisible(false);
+            	label_errorAddingStudent.setManaged(false);
 
+            theRoot.getChildren().add(label_errorAddingStudent);
+            	
+            setupLabelUI(label_errorAddingAdmin, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                	    Pos.BASELINE_LEFT, 20, adminControlBox.getLayoutY() + 68, "red");
+                	label_errorAddingAdmin.setVisible(false);
+                	label_errorAddingAdmin.setManaged(false);
+                	
+            theRoot.getChildren().add(label_errorAddingAdmin);
+                
         // Add all elements to the root pane
         theRoot.getChildren().addAll(
             label_ApplicationTitle, btn_menu, btn_logOut,
@@ -409,6 +459,278 @@ public class GroupManagerPageUI {
             showError(label_systemError);
         }
     }
+    
+    private void setupDeleteConfirmation() {
+        deleteConfirmStage = new Stage();
+        deleteConfirmStage.setTitle("Confirm Delete");
+        deleteConfirmStage.initModality(Modality.APPLICATION_MODAL);
+
+        Label confirmLabel = new Label("Are you sure you want to delete this group?\nThis action cannot be undone.");
+        Button noButton = new Button("No");
+        Button yesButton = new Button("Yes");
+
+        HBox buttonBox = new HBox(10, noButton, yesButton);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        VBox layout = new VBox(20, confirmLabel, buttonBox);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(20));
+
+        Scene scene = new Scene(layout);
+        deleteConfirmStage.setScene(scene);
+
+        noButton.setOnAction(e -> deleteConfirmStage.close());
+        yesButton.setOnAction(e -> handleConfirmedDelete());
+    }
+
+    private void handleConfirmedDelete() {
+        String groupName = text_deleteGroupName.getText().trim();
+        try {
+            boolean success = gp360EdDisc_GUIdriver.getDBHelper().deleteGroup(groupName);
+            if (success) {
+                text_deleteGroupName.clear();
+                deleteConfirmStage.close();
+            } else {
+                showError(label_deleteError);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showError(label_deleteError);
+        }
+    }
+
+    private void handleDeleteGroup() {
+        hideAllErrors();
+        
+        String activeGroup = text_groupNameDisplay.getText().trim();
+        String groupToDelete = text_deleteGroupName.getText().trim();
+        
+        // Check if text fields match
+        if (!activeGroup.equals(groupToDelete)) {
+            showError(label_deleteError);
+            return;
+        }
+        
+        try {
+            // Check if user has permission to delete
+            if (!gp360EdDisc_GUIdriver.getDBHelper().canDeleteGroup(groupToDelete, 
+                    gp360EdDisc_GUIdriver.USERNAME)) {
+                showError(label_deleteError);
+                return;
+            }
+            
+            // Show confirmation dialog
+            deleteConfirmStage.showAndWait();
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showError(label_deleteError);
+        }
+    }
+    
+    private void handleAddStudent() {
+    	   // Get student username and active group from text fields
+    	   String studentUsername = text_studentName.getText().trim();
+    	   String activeGroup = text_groupNameDisplay.getText().trim();
+    	   
+    	   // Hide any previous error
+    	   label_errorAddingStudent.setVisible(false);
+    	   label_errorAddingStudent.setManaged(false);
+
+    	   // Basic validation
+    	   if (studentUsername.isEmpty() || activeGroup.isEmpty()) {
+    	       label_errorAddingStudent.setVisible(true);
+    	       label_errorAddingStudent.setManaged(true);
+    	       return;
+    	   }
+
+    	   try {
+    	       // Check if student exists and has student role
+    	       if (!gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(studentUsername) || 
+    	           !gp360EdDisc_GUIdriver.getDBHelper().isUserStudent(studentUsername)) {
+    	           label_errorAddingStudent.setVisible(true);
+    	           label_errorAddingStudent.setManaged(true);
+    	           return;
+    	       }
+
+    	       // Check if group is special access
+    	       if (gp360EdDisc_GUIdriver.getDBHelper().isSpecialAccessGroup(activeGroup)) {
+    	           // Check if current user has access to add students
+    	           boolean hasAccess = gp360EdDisc_GUIdriver.getDBHelper().hasAccessToGroup(
+    	               activeGroup, 
+    	               gp360EdDisc_GUIdriver.USERNAME, 
+    	               gp360EdDisc_GUIdriver.CURRENT_SESSION
+    	           );
+    	           
+    	           if (!hasAccess) {
+    	               label_errorAddingStudent.setVisible(true);
+    	               label_errorAddingStudent.setManaged(true);
+    	               return;
+    	           }
+    	       }
+
+    	       // All checks passed, add student to group
+    	       boolean success = gp360EdDisc_GUIdriver.getDBHelper().addStudentToGroup(studentUsername, activeGroup);
+    	       
+    	       if (success) {
+    	           // Clear input field
+    	           text_studentName.clear();
+    	           
+    	           // Show success message
+    	           Alert alert = new Alert(Alert.AlertType.INFORMATION);
+    	           alert.setTitle("Success");
+    	           alert.setHeaderText(null);
+    	           alert.setContentText("Student successfully added to group!");
+    	           alert.showAndWait();
+    	       } else {
+    	           label_errorAddingStudent.setVisible(true);
+    	           label_errorAddingStudent.setManaged(true);
+    	       }
+
+    	   } catch (SQLException e) {
+    	       e.printStackTrace();
+    	       label_errorAddingStudent.setVisible(true);
+    	       label_errorAddingStudent.setManaged(true);
+    	   }
+    	}
+    
+    private void handleAddInstructor() {
+        // Get instructor username and active group from text fields
+        String instructorUsername = text_instructorName.getText().trim();
+        String activeGroup = text_groupNameDisplay.getText().trim();
+        
+        // Hide any previous error
+        label_errorAddingInstructor.setVisible(false);
+        label_errorAddingInstructor.setManaged(false);
+
+        // Basic validation
+        if (instructorUsername.isEmpty() || activeGroup.isEmpty()) {
+            label_errorAddingInstructor.setVisible(true);
+            label_errorAddingInstructor.setManaged(true);
+            return;
+        }
+
+        try {
+            // Check if instructor exists and has instructor role
+            if (!gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(instructorUsername) || 
+                !gp360EdDisc_GUIdriver.getDBHelper().isInstructorForUsers(instructorUsername)) {
+                label_errorAddingInstructor.setVisible(true);
+                label_errorAddingInstructor.setManaged(true);
+                return;
+            }
+
+            // Check if group is special access
+            if (gp360EdDisc_GUIdriver.getDBHelper().isSpecialAccessGroup(activeGroup)) {
+                // Check if current user has access to add instructors
+                boolean hasAccess = gp360EdDisc_GUIdriver.getDBHelper().hasAccessToGroup(
+                    activeGroup, 
+                    gp360EdDisc_GUIdriver.USERNAME, 
+                    gp360EdDisc_GUIdriver.CURRENT_SESSION
+                );
+                
+                if (!hasAccess) {
+                    label_errorAddingInstructor.setVisible(true);
+                    label_errorAddingInstructor.setManaged(true);
+                    return;
+                }
+            }
+
+            // All checks passed, add instructor to group
+            boolean success = gp360EdDisc_GUIdriver.getDBHelper().addInstructorToGroup(instructorUsername, activeGroup);
+            
+            if (success) {
+                // Clear input field
+                text_instructorName.clear();
+                
+                // Show success message
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Success");
+                alert.setHeaderText(null);
+                alert.setContentText("Instructor successfully added to group!");
+                alert.showAndWait();
+            } else {
+                label_errorAddingInstructor.setVisible(true);
+                label_errorAddingInstructor.setManaged(true);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            label_errorAddingInstructor.setVisible(true);
+            label_errorAddingInstructor.setManaged(true);
+        }
+    }
+    
+    private void handleAddAdmin() {
+ 	   // Get student username and active group from text fields
+ 	   String adminUsername = text_adminName.getText().trim();
+ 	   String activeGroup = text_groupNameDisplay.getText().trim();
+ 	   
+ 	   // Hide any previous error
+ 	   label_errorAddingAdmin.setVisible(false);
+ 	   label_errorAddingAdmin.setManaged(false);
+
+ 	   // Basic validation
+ 	   if (adminUsername.isEmpty() || activeGroup.isEmpty()) {
+ 	       label_errorAddingAdmin.setVisible(true);
+ 	       label_errorAddingAdmin.setManaged(true);
+ 	       return;
+ 	   }
+
+ 	   try {
+ 	       // Check if student exists and has student role
+ 	       if (!gp360EdDisc_GUIdriver.getDBHelper().usernameExistsInDB(adminUsername) || 
+ 	           !gp360EdDisc_GUIdriver.getDBHelper().isUserAdmin(adminUsername)) {
+ 	           label_errorAddingAdmin.setVisible(true);
+ 	           label_errorAddingAdmin.setManaged(true);
+ 	           return;
+ 	       }
+
+ 	       // Check if group is special access
+ 	       if (gp360EdDisc_GUIdriver.getDBHelper().isSpecialAccessGroup(activeGroup)) {
+ 	           // Check if current user has access to add students
+ 	           boolean hasAccess = gp360EdDisc_GUIdriver.getDBHelper().hasAccessToGroup(
+ 	               activeGroup, 
+ 	               gp360EdDisc_GUIdriver.USERNAME, 
+ 	               gp360EdDisc_GUIdriver.CURRENT_SESSION
+ 	           );
+ 	           
+ 	           if (!hasAccess) {
+ 	               label_errorAddingAdmin.setVisible(true);
+ 	               label_errorAddingAdmin.setManaged(true);
+ 	               return;
+ 	           }
+ 	       }
+
+ 	       // All checks passed, add student to group
+ 	       boolean success = gp360EdDisc_GUIdriver.getDBHelper().addAdminToGroup(adminUsername, activeGroup);
+ 	       
+ 	       if (success) {
+ 	           // Clear input field
+ 	           text_adminName.clear();
+ 	           
+ 	           // Show success message
+ 	           Alert alert = new Alert(Alert.AlertType.INFORMATION);
+ 	           alert.setTitle("Success");
+ 	           alert.setHeaderText(null);
+ 	           alert.setContentText("Admin successfully added to group!");
+ 	           alert.showAndWait();
+ 	       } else {
+ 	           label_errorAddingAdmin.setVisible(true);
+ 	           label_errorAddingAdmin.setManaged(true);
+ 	       }
+
+ 	   } catch (SQLException e) {
+ 	       e.printStackTrace();
+ 	       label_errorAddingAdmin.setVisible(true);
+ 	       label_errorAddingAdmin.setManaged(true);
+ 	   }
+ 	}
+    
+    
+    
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void configureRoleBasedAccess() {
         String currentSession = gp360EdDisc_GUIdriver.CURRENT_SESSION;
@@ -512,6 +834,14 @@ public class GroupManagerPageUI {
         label_groupExists.setManaged(false);
         label_systemError.setVisible(false);
         label_systemError.setManaged(false);
+        label_deleteError.setVisible(false);
+        label_deleteError.setManaged(false);
+        label_errorAddingStudent.setVisible(false);
+        label_errorAddingStudent.setManaged(false);
+    	label_errorAddingInstructor.setVisible(false);
+    	label_errorAddingInstructor.setManaged(false);
+    	label_errorAddingAdmin.setVisible(false);
+    	label_errorAddingAdmin.setManaged(false);
     }
 
     private void showError(Label errorToShow) {

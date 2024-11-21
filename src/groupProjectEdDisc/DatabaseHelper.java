@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import org.h2.tools.*;
 
@@ -845,7 +846,7 @@ class DatabaseHelper {
 			pstmt.setLong(1, id);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if (rs.next()) {
-					title = rs.getString("title");
+					title = rs.getString("title"); // added spacess
 					return title;
 				}
 			}
@@ -857,7 +858,7 @@ class DatabaseHelper {
 
 	public String getDescriptor(Long id) {
 		String descriptor;
-		String query = "SELECT * FROM articles WHERE id = ?";
+		String query = "SELECT * FROM articles WHERE id = ?"; 
 
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setLong(1, id);
@@ -868,7 +869,7 @@ class DatabaseHelper {
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			e.printStackTrace();   // added spaces
 		}
 		return "OOPS!";
 	}
@@ -1131,70 +1132,81 @@ class DatabaseHelper {
 	// function to print articles, either by group, or all articles
 	public String listArticles(String[] selectedGroups, boolean all) {
 	    StringBuilder query = new StringBuilder("SELECT * FROM ARTICLES");
-	    
 	    StringBuilder result = new StringBuilder();
 	    result.append("\n====================================\n");
 	    result.append("              ARTICLES              ");
 	    result.append("\n====================================\n\n");
 	    
-	    try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
-	        ResultSet rs = pstmt.executeQuery();
-	        
-	        while (rs.next()) {
-	            // Get all fields from the article
-	            int id = rs.getInt("ID");
-	            String level = rs.getString("LEVEL");
-	            String groups = rs.getString("GROUPS");
-	            String permissions = rs.getString("PERMISSIONS");
-	            String title = rs.getString("TITLE");
-	            String descriptor = rs.getString("DESCRIPTOR");
-	            String keywords = rs.getString("KEYWORDS");
-	            String body = rs.getString("BODY");
-	            String reference = rs.getString("REFERENCE");
-	            
-	            // Check if we should include this article
-	            boolean includeArticle = all;  // Include if "All" is selected
-	            
-	            if (!all && selectedGroups.length > 0) {
-	                // Split the article's groups by comma and trim each group
-	                String[] articleGroups = groups.split(";\\s*");
-	                
-	                // Check if any of the selected groups match this article's groups
-	                for (String selectedGroup : selectedGroups) {
-	                    String trimmedSelectedGroup = selectedGroup.trim();
+	    try {
+	        List<String> generalAccessGroups = new ArrayList<>();
+	        List<String> specialAccessGroups = new ArrayList<>();
+
+	        // If showing all articles or no groups specified, only show general access group articles
+	        if (all || (selectedGroups.length == 0)) {
+	            try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
+	                ResultSet rs = pstmt.executeQuery();
+	                while (rs.next()) {
+	                    String groups = rs.getString("GROUPS");
+	                    boolean includeArticle = true;
+	                    
+	                    // Skip articles with no groups
+	                    if (groups == null || groups.trim().isEmpty()) {
+	                    	formatArticleResult(rs, result);
+	                        continue;
+	                    }
+
+	                    // Check each group of the article
+	                    String[] articleGroups = groups.split(";");
+	                    for (String group : articleGroups) {
+	                        if (isSpecialAccessGroup(group.trim())) {
+	                            includeArticle = false;
+	                            break;
+	                        }
+	                    }
+
+	                    if (includeArticle) {
+	                        formatArticleResult(rs, result);
+	                    }
+	                }
+	            }
+	        } else {
+	            // Process specified groups
+	            for (String group : selectedGroups) {
+	                String trimmedGroup = group.trim();
+	                if (!trimmedGroup.isEmpty()) {
+	                    if (isSpecialAccessGroup(trimmedGroup)) {
+	                        specialAccessGroups.add(trimmedGroup);
+	                    } else {
+	                        generalAccessGroups.add(trimmedGroup);
+	                    }
+	                }
+	            }
+
+	            // Get articles for specified groups
+	            try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
+	                ResultSet rs = pstmt.executeQuery();
+	                while (rs.next()) {
+	                    String groups = rs.getString("GROUPS");
+	                    if (groups == null || groups.trim().isEmpty()) {
+	                        continue;
+	                    }
+
+	                    String[] articleGroups = groups.split(";");
+	                    boolean includeArticle = false;
+
 	                    for (String articleGroup : articleGroups) {
-	                        if (articleGroup.trim().equalsIgnoreCase(trimmedSelectedGroup)) {
+	                        String trimmedArticleGroup = articleGroup.trim();
+	                        if (generalAccessGroups.contains(trimmedArticleGroup) || 
+	                            specialAccessGroups.contains(trimmedArticleGroup)) {
 	                            includeArticle = true;
 	                            break;
 	                        }
 	                    }
-	                    if (includeArticle) break;  // No need to check other groups if we found a match
+
+	                    if (includeArticle) {
+	                        formatArticleResult(rs, result);
+	                    }
 	                }
-	            }
-	            
-	            // If we should include this article, add it to the result
-	            if (includeArticle) {
-	                result.append(String.format(
-	                    "📑 Article ID: %d\n" +
-	                    "------------------------------------\n" +
-	                    "📚 Level: %s\n" +
-	                    "🔷 Groups: %s\n" +
-	                    "🔒 Permissions: %s\n\n" +
-	                    "📌 Title: %s\n" +
-	                    "📝 Descriptor: %s\n" +
-	                    "🏷️ Keywords: %s\n\n" +
-	                    "📄 Body:\n%s\n\n" +
-	                    "📚 Reference:\n%s\n" +
-	                    "\n====================================\n\n",
-	                    id, 
-	                    level, 
-	                    groups, 
-	                    permissions, 
-	                    title, 
-	                    descriptor, 
-	                    keywords, 
-	                    body, 
-	                    reference));
 	            }
 	        }
 	    } catch (SQLException e) {
@@ -1202,7 +1214,6 @@ class DatabaseHelper {
 	        return "Error retrieving articles: " + e.getMessage();
 	    }
 	    
-	    // Add footer if no results were found
 	    if (result.toString().equals("\n====================================\n" +
 	                                "              ARTICLES              " +
 	                                "\n====================================\n\n")) {
@@ -1408,6 +1419,441 @@ class DatabaseHelper {
 	        e.printStackTrace();
 	    }
 	    return null;
+	}
+	
+	public boolean isSpecialAccessGroup(String groupName) {
+	    String query = "SELECT specialAccess FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("specialAccess");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+
+	public boolean hasAccessToGroup(String groupName, String username, String role) {
+	    String columnName;
+	    if (role.equals("ADMIN")) {
+	        columnName = "admins";
+	    } else if (role.equals("INSTRUCTOR")) {
+	        columnName = "instructors";
+	    } else {
+	        return false; // For any other role
+	    }
+
+	    String query = "SELECT " + columnName + " FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            String accessList = rs.getString(columnName);
+	            if (accessList == null || accessList.isEmpty()) {
+	                return false;
+	            }
+	            // Split the semicolon-separated list and check if username exists
+	            String[] users = accessList.split(";");
+	            for (String user : users) {
+	                if (user.trim().equals(username)) {
+	                    return true;
+	                }
+	            }
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+
+	public boolean canCreateArticleForGroups(String groupsString, String username, String role) {
+	    // If groups string is empty, allow creation
+	    if (groupsString == null || groupsString.trim().isEmpty()) {
+	        return true;
+	    }
+
+	    String[] groups = groupsString.split(";");
+	    for (String group : groups) {
+	        String groupName = group.trim();
+	        if (groupName.isEmpty()) continue;
+
+	        // Check if it's a special access group
+	        if (isSpecialAccessGroup(groupName)) {
+	            // For special access groups, verify user has access
+	            if (!hasAccessToGroup(groupName, username, role)) {
+	                return false;
+	            }
+	        }
+	    }
+	    return true;
+	}
+	
+	public boolean canUpdateArticleForGroups(String groupsString, String username) {
+	    // If groups string is empty, allow update
+	    if (groupsString == null || groupsString.trim().isEmpty()) {
+	        return true;
+	    }
+
+	    String[] groups = groupsString.split(";");
+	    for (String group : groups) {
+	        String groupName = group.trim();
+	        if (groupName.isEmpty()) continue;
+
+	        // Check if it's a special access group
+	        if (isSpecialAccessGroup(groupName)) {
+	            // For special access groups, verify user has instructor access
+	            if (!hasAccessToGroup(groupName, username, "INSTRUCTOR")) {
+	                return false;
+	            }
+	        }
+	    }
+	    return true;
+	}
+	
+	public boolean canDeleteArticleWithID(int id, String username, String role) {
+	    // First get the groups associated with this article
+	    String groups = "";
+	    String query = "SELECT groups FROM articles WHERE id = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setInt(1, id);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            groups = rs.getString("groups");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return false;
+	    }
+
+	    // If article has no groups, allow deletion
+	    if (groups == null || groups.trim().isEmpty()) {
+	        return true;
+	    }
+
+	    // Check each group
+	    String[] articleGroups = groups.split(";");
+	    for (String group : articleGroups) {
+	        String groupName = group.trim();
+	        if (groupName.isEmpty()) continue;
+
+	        // Check if it's a special access group
+	        if (isSpecialAccessGroup(groupName)) {
+	            // For special access groups, verify user has appropriate access
+	            if (!hasAccessToGroup(groupName, username, role)) {
+	                return false;
+	            }
+	        }
+	    }
+	    return true;
+	}
+	
+	public boolean canViewArticle(long articleId, String username) throws SQLException {
+	    // Get the groups associated with this article
+	    String groups = getGroups(articleId);
+	    
+	    // If article has no groups, allow viewing
+	    if (groups == null || groups.trim().isEmpty()) {
+	        return true;
+	    }
+
+	    // Split groups string by semicolon
+	    String[] articleGroups = groups.split(";");
+	    for (String group : articleGroups) {
+	        String groupName = group.trim();
+	        if (groupName.isEmpty()) continue;
+
+	        // Check if it's a special access group
+	        if (isSpecialAccessGroup(groupName)) {
+	            // For special access groups, verify user has instructor access
+	            if (!hasAccessToGroup(groupName, username, "INSTRUCTOR")) {
+	                return false;  // If user doesn't have access to any special access group, deny access
+	            }
+	        }
+	        // If it's a general access group, continue checking others
+	    }
+	    // If we get here, either all groups are general access or user has access to all special access groups
+	    return true;
+	}
+	
+	public boolean canListArticlesForGroups(String groupsString, String username) {
+	    // If groups string is empty, allow listing
+	    if (groupsString == null || groupsString.trim().isEmpty()) {
+	        return true;
+	    }
+
+	    String[] groups = groupsString.split(";");
+	    for (String group : groups) {
+	        String groupName = group.trim();
+	        if (groupName.isEmpty()) continue;
+
+	        // Check if it's a special access group
+	        if (isSpecialAccessGroup(groupName)) {
+	            // For special access groups, verify user has instructor access
+	            if (!hasAccessToGroup(groupName, username, "INSTRUCTOR")) {
+	                return false;
+	            }
+	        }
+	    }
+	    return true;
+	}
+	
+	private void formatArticleResult(ResultSet rs, StringBuilder result) throws SQLException {
+	    result.append(String.format(
+	        "📑 Article ID: %d\n" +
+	        "------------------------------------\n" +
+	        "📚 Level: %s\n" +
+	        "🔷 Groups: %s\n" +
+	        "🔒 Permissions: %s\n\n" +
+	        "📌 Title: %s\n" +
+	        "📝 Descriptor: %s\n" +
+	        "🏷️ Keywords: %s\n\n" +
+	        "📄 Body:\n%s\n\n" +
+	        "📚 Reference:\n%s\n" +
+	        "\n====================================\n\n",
+	        rs.getInt("ID"), 
+	        rs.getString("LEVEL"), 
+	        rs.getString("GROUPS"), 
+	        rs.getString("PERMISSIONS"), 
+	        rs.getString("TITLE"), 
+	        rs.getString("DESCRIPTOR"), 
+	        rs.getString("KEYWORDS"), 
+	        rs.getString("BODY"), 
+	        rs.getString("REFERENCE")));
+	}
+	
+	public void removeGroupFromAllArticles(String groupName) throws SQLException {
+	    String query = "SELECT id, groups FROM articles WHERE groups LIKE ?";
+	    String updateQuery = "UPDATE articles SET groups = ? WHERE id = ?";
+	    
+	    try (PreparedStatement selectStmt = connection.prepareStatement(query);
+	         PreparedStatement updateStmt = connection.prepareStatement(updateQuery)) {
+	        
+	        selectStmt.setString(1, "%" + groupName + "%");
+	        ResultSet rs = selectStmt.executeQuery();
+	        
+	        while (rs.next()) {
+	            long articleId = rs.getLong("id");
+	            String groups = rs.getString("groups");
+	            
+	            if (groups != null && !groups.isEmpty()) {
+	                // Split groups by semicolon, remove the group, and rejoin
+	                List<String> groupList = new ArrayList<>(Arrays.asList(groups.split(";")));
+	                groupList.removeIf(g -> g.trim().equals(groupName));
+	                String newGroups = String.join(";", groupList);
+	                
+	                // Update the article
+	                updateStmt.setString(1, newGroups);
+	                updateStmt.setLong(2, articleId);
+	                updateStmt.executeUpdate();
+	            }
+	        }
+	    }
+	}
+
+	public boolean deleteGroup(String groupName) throws SQLException {
+	    String query = "DELETE FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        int rowsAffected = pstmt.executeUpdate();
+	        if (rowsAffected > 0) {
+	            // Remove the group from all articles
+	            removeGroupFromAllArticles(groupName);
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+
+	public boolean canDeleteGroup(String groupName, String username) throws SQLException {
+	    // Check if group exists
+	    if (!groupExists(groupName)) {
+	        return false;
+	    }
+	    
+	    // If it's a special access group, check if user has instructor access
+	    if (isSpecialAccessGroup(groupName)) {
+	        return hasAccessToGroup(groupName, username, "INSTRUCTOR");
+	    }
+	    
+	    // For general access groups, any instructor can delete
+	    return true;
+	}
+	
+	public boolean isUserStudent(String username) {
+	    String query = "SELECT student FROM cse360users WHERE username = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("student");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+	
+	public boolean isUserAdmin(String username) {
+	    String query = "SELECT admin FROM cse360users WHERE username = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, username);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            return rs.getBoolean("admin");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+
+	public boolean addStudentToGroup(String studentUsername, String groupName) {
+	    // First get current students list
+	    String currentStudents = "";
+	    String query = "SELECT students FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            currentStudents = rs.getString("students");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return false;
+	    }
+
+	    // Add new student to list
+	    String newStudents;
+	    if (currentStudents == null || currentStudents.isEmpty()) {
+	        newStudents = studentUsername;
+	    } else {
+	        // Check if student is already in the group
+	        String[] studentList = currentStudents.split(";");
+	        for (String student : studentList) {
+	            if (student.trim().equals(studentUsername)) {
+	                return false; // Student already in group
+	            }
+	        }
+	        newStudents = currentStudents + ";" + studentUsername;
+	    }
+
+	    // Update the group with new student list
+	    String updateQuery = "UPDATE groups SET students = ? WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
+	        pstmt.setString(1, newStudents);
+	        pstmt.setString(2, groupName);
+	        return pstmt.executeUpdate() > 0;
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return false;
+	    }
+	}
+	
+	public boolean addInstructorToGroup(String instructorUsername, String groupName) {
+	    // First get current instructors and admins list
+	    String currentInstructors = "";
+	    String currentAdmins = "";
+	    String query = "SELECT instructors, admins, specialAccess FROM groups WHERE groupName = ?";
+	    
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            currentInstructors = rs.getString("instructors");
+	            currentAdmins = rs.getString("admins");
+	            boolean isSpecialAccess = rs.getBoolean("specialAccess");
+	            
+	            // Add new instructor to instructors list
+	            String newInstructors;
+	            if (currentInstructors == null || currentInstructors.isEmpty()) {
+	                newInstructors = instructorUsername;
+	                
+	                // If this is first instructor and group is special access,
+	                // also add to admins list
+	                if (isSpecialAccess) {
+	                    String newAdmins;
+	                    if (currentAdmins == null || currentAdmins.isEmpty()) {
+	                        newAdmins = instructorUsername;
+	                    } else {
+	                        newAdmins = currentAdmins + ";" + instructorUsername;
+	                    }
+	                    
+	                    // Update both instructors and admins
+	                    String updateBothQuery = "UPDATE groups SET instructors = ?, admins = ? WHERE groupName = ?";
+	                    try (PreparedStatement updateBothStmt = connection.prepareStatement(updateBothQuery)) {
+	                        updateBothStmt.setString(1, newInstructors);
+	                        updateBothStmt.setString(2, newAdmins);
+	                        updateBothStmt.setString(3, groupName);
+	                        return updateBothStmt.executeUpdate() > 0;
+	                    }
+	                }
+	            } else {
+	                // Check if instructor is already in the group
+	                String[] instructorList = currentInstructors.split(";");
+	                for (String instructor : instructorList) {
+	                    if (instructor.trim().equals(instructorUsername)) {
+	                        return false; // Instructor already in group
+	                    }
+	                }
+	                newInstructors = currentInstructors + ";" + instructorUsername;
+	            }
+	            
+	            // If we get here, just update instructors list
+	            String updateQuery = "UPDATE groups SET instructors = ? WHERE groupName = ?";
+	            try (PreparedStatement updateStmt = connection.prepareStatement(updateQuery)) {
+	                updateStmt.setString(1, newInstructors);
+	                updateStmt.setString(2, groupName);
+	                return updateStmt.executeUpdate() > 0;
+	            }
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+	
+	public boolean addAdminToGroup(String adminUsername, String groupName) {
+	    // First get current students list
+	    String currentAdmins = "";
+	    String query = "SELECT admins FROM groups WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, groupName);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            currentAdmins = rs.getString("admins");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return false;
+	    }
+
+	    // Add new student to list
+	    String newAdmins;
+	    if (currentAdmins == null || currentAdmins.isEmpty()) {
+	        newAdmins = adminUsername;
+	    } else {
+	        // Check if student is already in the group
+	        String[] adminList = currentAdmins.split(";");
+	        for (String admin : adminList) {
+	            if (admin.trim().equals(adminUsername)) {
+	                return false; // admin already in group
+	            }
+	        }
+	        newAdmins = currentAdmins + ";" + adminUsername;
+	    }
+
+	    // Update the group with new student list
+	    String updateQuery = "UPDATE groups SET admins = ? WHERE groupName = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
+	        pstmt.setString(1, newAdmins);
+	        pstmt.setString(2, groupName);
+	        return pstmt.executeUpdate() > 0;
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        return false;
+	    }
 	}
 	
 	public boolean isSpecialAccess(String group) throws SQLException {

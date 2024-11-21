@@ -6,3 +6,4 @@
 .project
 # ignore csv
 *.csv
+test

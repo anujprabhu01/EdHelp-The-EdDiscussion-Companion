@@ -442,7 +442,7 @@ public class ArticleAPageUI {
 	            return;
 	        }
 
-	        String groups = groupsText.getText();
+	        String groups = groupsText.getText().trim();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
@@ -475,7 +475,17 @@ public class ArticleAPageUI {
 	            label_groupError.setVisible(false);
 	        } else {
 	            try {
-	                // Check if all groups exist before proceeding
+	                // Add new check for special access groups
+	                if (!gp360EdDisc_GUIdriver.getDBHelper().canCreateArticleForGroups(groups, 
+	                        gp360EdDisc_GUIdriver.USERNAME, gp360EdDisc_GUIdriver.CURRENT_SESSION)) {
+	                    // Add a new label for this error if you haven't already
+	                    label_error.setText("You don't have permission to create articles for one or more of the specified groups");
+	                    label_error.setManaged(true);
+	                    label_error.setVisible(true);
+	                    return;
+	                }
+
+	                // If groups are not empty, verify they exist
 	                if (!groups.isEmpty() && !gp360EdDisc_GUIdriver.getDBHelper().doGroupsExist(groups)) {
 	                    label_groupError.setManaged(true);
 	                    label_groupError.setVisible(true);
@@ -488,6 +498,7 @@ public class ArticleAPageUI {
 	                label_error.setVisible(false);
 	                label_groupError.setManaged(false);
 	                label_groupError.setVisible(false);
+	                
 	                gp360EdDisc_GUIdriver.getDBHelper().createArticle(level, groups, permissions, 
 	                    title, descriptor, keywords, body, reference);
 	                createArticleStage.close();
@@ -511,66 +522,75 @@ public class ArticleAPageUI {
 	    createArticleStage.showAndWait();
 	}
 	
-	private void handleViewArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException{
-		// === Call to get Article Values === use id
-		String level = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
-		String title =gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
-		String descriptor = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
-		String body = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
-		String keywords = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
-		String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
-		
-		
-		// Create a new Stage
-	    Stage viewArticleStage = new Stage();
-	    viewArticleStage.setTitle("Article #"+id);
-	    // TextArea to display the user accounts
-	    Label titleLabel = new Label(title);
-	    titleLabel.setWrapText(true);
-	    titleLabel.setFont(Font.font("Arial", 24));
-	    titleLabel.setStyle("-fx-font-weight: bold");
-	    
-	    Label levelLabel = new Label("Level: "+level);
-	    levelLabel.setWrapText(true);
-	    levelLabel.setFont(Font.font("Arial", 18));
-	    levelLabel.setStyle("-fx-font-weight: bold");
-	    
-	    Label descriptorLabel = new Label(descriptor);
-	    descriptorLabel.setWrapText(true);
-	    descriptorLabel.setFont(Font.font("Arial", 18));
-	    //descriptorLabel.setStyle("-fx-font-weight: bold");
-	    
-	    Label keywordsLabel = new Label("Keywords: "+keywords);
-	    keywordsLabel.setWrapText(true);
-	    keywordsLabel.setFont(Font.font("Arial", 18));
-	    //keywordsLabel.setStyle("-fx-font-weight: bold");
-	    
-	    Label bodyLabel = new Label(body);
-	    bodyLabel.setWrapText(true);
-	    bodyLabel.setFont(Font.font("Arial", 18));
-	    //bodyLabel.setStyle("-fx-font-weight: bold");
-	    
-	    Label referenceLabel = new Label(reference);
-	    referenceLabel.setWrapText(true);
-	    referenceLabel.setFont(Font.font("Arial", 18));
-	    referenceLabel.setStyle("-fx-font-style: italic");
-	    
+	private void handleViewArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException {
+	    try {
+	        // First check if the user has permission to view this article
+	        boolean canView = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, gp360EdDisc_GUIdriver.USERNAME);
+	        
+	        if (!canView) {
+	            // Show error message - user doesn't have permission
+	            errorId.setText("You don't have permission to view this article");
+	            errorId.setVisible(true);
+	            errorId.setManaged(true);
+	            return;
+	        }
 
-	    
-	    // Make sure this window doesn't block interaction with the main window
-	    viewArticleStage.initModality(Modality.NONE); 
+	        // If we get here, user has permission to view the article
+	        String level = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
+	        String title = gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
+	        String descriptor = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
+	        String body = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
+	        String keywords = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
+	        String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 
-	    
-	    VBox mainLayout = new VBox(8, 
-	    		titleLabel, levelLabel, descriptorLabel, keywordsLabel, bodyLabel, referenceLabel
-		    );
-		    mainLayout.setAlignment(Pos.TOP_CENTER);
-		    mainLayout.setPadding(new Insets(20));
+	        // Create a new Stage
+	        Stage viewArticleStage = new Stage();
+	        viewArticleStage.setTitle("Article #" + id);
 
-		    // === Set Scene and Show Popup ===
-		    Scene scene = new Scene(mainLayout, 600, 400);
-		    viewArticleStage.setScene(scene);
-		    viewArticleStage.showAndWait();  // Wait for user input
+	        Label titleLabel = new Label(title);
+	        titleLabel.setWrapText(true);
+	        titleLabel.setFont(Font.font("Arial", 24));
+	        titleLabel.setStyle("-fx-font-weight: bold");
+	        
+	        Label levelLabel = new Label("Level: " + level);
+	        levelLabel.setWrapText(true);
+	        levelLabel.setFont(Font.font("Arial", 18));
+	        levelLabel.setStyle("-fx-font-weight: bold");
+	        
+	        Label descriptorLabel = new Label(descriptor);
+	        descriptorLabel.setWrapText(true);
+	        descriptorLabel.setFont(Font.font("Arial", 18));
+	        
+	        Label keywordsLabel = new Label("Keywords: " + keywords);
+	        keywordsLabel.setWrapText(true);
+	        keywordsLabel.setFont(Font.font("Arial", 18));
+	        
+	        Label bodyLabel = new Label(body);
+	        bodyLabel.setWrapText(true);
+	        bodyLabel.setFont(Font.font("Arial", 18));
+	        
+	        Label referenceLabel = new Label(reference);
+	        referenceLabel.setWrapText(true);
+	        referenceLabel.setFont(Font.font("Arial", 18));
+	        referenceLabel.setStyle("-fx-font-style: italic");
+
+	        viewArticleStage.initModality(Modality.NONE);
+
+	        VBox mainLayout = new VBox(8, 
+	            titleLabel, levelLabel, descriptorLabel, keywordsLabel, bodyLabel, referenceLabel
+	        );
+	        mainLayout.setAlignment(Pos.TOP_CENTER);
+	        mainLayout.setPadding(new Insets(20));
+
+	        Scene scene = new Scene(mainLayout, 600, 400);
+	        viewArticleStage.setScene(scene);
+	        viewArticleStage.showAndWait();
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        errorId.setText("Error accessing article");
+	        errorId.setVisible(true);
+	        errorId.setManaged(true);
+	    }
 	}
 	
 	private void handleUpdateArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException {
@@ -704,7 +724,7 @@ public class ArticleAPageUI {
 	            return;
 	        }
 
-	        String groups = groupsText.getText();
+	        String groups = groupsText.getText().trim();
 	        boolean student = studentPermission.isSelected();
 	        boolean instructor = instructorPermission.isSelected();
 	        boolean admin = adminPermission.isSelected();
@@ -737,7 +757,17 @@ public class ArticleAPageUI {
 	            label_groupError.setVisible(false);
 	        } else {
 	            try {
-	                // Check if all groups exist before proceeding
+	                // Add new check for special access groups
+	                if (!gp360EdDisc_GUIdriver.getDBHelper().canUpdateArticleForGroups(groups, 
+	                        gp360EdDisc_GUIdriver.USERNAME)) {
+	                    // Add a new label for this error if you haven't already
+	                    label_error.setText("You don't have permission to update articles for one or more of the specified groups");
+	                    label_error.setManaged(true);
+	                    label_error.setVisible(true);
+	                    return;
+	                }
+
+	                // If groups are not empty, verify they exist
 	                if (!groups.isEmpty() && !gp360EdDisc_GUIdriver.getDBHelper().doGroupsExist(groups)) {
 	                    label_groupError.setManaged(true);
 	                    label_groupError.setVisible(true);
@@ -750,6 +780,7 @@ public class ArticleAPageUI {
 	                label_error.setVisible(false);
 	                label_groupError.setManaged(false);
 	                label_groupError.setVisible(false);
+
 	                gp360EdDisc_GUIdriver.getDBHelper().updateArticle(id, level, groups, permissions, 
 	                    title, descriptor, keywords, body, reference);
 	                createArticleStage.close();
@@ -776,77 +807,89 @@ public class ArticleAPageUI {
 	    createArticleStage.showAndWait();
 	}
 	
-	private void handleDeleteArticle(gp360EdDisc_GUIdriver driver) throws SQLException{
-		Stage deleteArticleStage = new Stage();
-		deleteArticleStage.setTitle("Are you sure?");
-		deleteArticleStage.initModality(Modality.APPLICATION_MODAL);
-		
-		// confirmation label
-		Label label_deleteArticle = new Label("Are you sure you want to delete this article? This action cannot be undone.");
-		
-		// confirmation buttons
-		Button btn_no = new Button("No");
-		Button btn_yes = new Button("Yes");
-		
-		HBox buttonBox = new HBox(10, btn_no, btn_yes);
-		
-		VBox deleteArticleBox = new VBox(20, label_deleteArticle, buttonBox);
-		
-		if(text_ID.getText().isEmpty()) {
-			label_enterIDToDelete.setVisible(true);
-			label_enterIDToDelete.setManaged(true);
-			label_idInvalid.setVisible(false);
-			label_idInvalid.setManaged(false);
-			return;
-		}
-		else {
-			int articleID = Integer.parseInt(text_ID.getText());
-			if(!driver.getDBHelper().idExistsInDatabase(articleID)) {
-				label_enterIDToDelete.setVisible(false);
-				label_enterIDToDelete.setManaged(false);
-				label_idInvalid.setVisible(true);
-				label_idInvalid.setManaged(true);
-				return;
-			}
-			else {
-				label_enterIDToDelete.setVisible(false);
-				label_enterIDToDelete.setManaged(false);
-				label_idInvalid.setVisible(false);
-				label_idInvalid.setManaged(false);
-				
-				btn_no.setOnAction(e -> {
-					deleteArticleStage.close();
-					text_ID.setText(""); // set field to empty string because deletion did not go through
-				});
-				btn_yes.setOnAction(e -> {
-					boolean success = driver.getDBHelper().deleteArticleWithID(articleID);
-					
-					if(success) {
-						System.out.println("deleted article with given id: " + articleID);
-					}
-					else {
-						System.out.println("deletion of article did not go through.");
-					}
-					deleteArticleStage.close();
-					text_ID.setText(""); // set field to empty string after deletion process
-				});
-				
-				deleteArticleBox.setAlignment(Pos.CENTER);
-				deleteArticleBox.setPadding(new Insets(10));
-				
-				buttonBox.setAlignment(Pos.CENTER);
-				buttonBox.setPadding(new Insets(10));
-				
-				// create scene for stage
-				Scene scene = new Scene(deleteArticleBox);
-				// set scene on stage
-				deleteArticleStage.setScene(scene);
-				deleteArticleStage.setMinHeight(250);
-				deleteArticleStage.setMinWidth(150);
-				
-				deleteArticleStage.showAndWait();
-			}
-		}	
+	private void handleDeleteArticle(gp360EdDisc_GUIdriver driver) throws SQLException {
+	    Stage deleteArticleStage = new Stage();
+	    deleteArticleStage.setTitle("Are you sure?");
+	    deleteArticleStage.initModality(Modality.APPLICATION_MODAL);
+
+	    // confirmation label
+	    Label label_deleteArticle = new Label("Are you sure you want to delete this article? This action cannot be undone.");
+
+	    // confirmation buttons
+	    Button btn_no = new Button("No");
+	    Button btn_yes = new Button("Yes");
+
+	    HBox buttonBox = new HBox(10, btn_no, btn_yes);
+
+	    VBox deleteArticleBox = new VBox(20, label_deleteArticle, buttonBox);
+
+	    if(text_ID.getText().isEmpty()) {
+	        label_enterIDToDelete.setVisible(true);
+	        label_enterIDToDelete.setManaged(true);
+	        label_idInvalid.setVisible(false);
+	        label_idInvalid.setManaged(false);
+	        return;
+	    }
+	    else {
+	        int articleID = Integer.parseInt(text_ID.getText());
+	        if(!driver.getDBHelper().idExistsInDatabase(articleID)) {
+	            label_enterIDToDelete.setVisible(false);
+	            label_enterIDToDelete.setManaged(false);
+	            label_idInvalid.setVisible(true);
+	            label_idInvalid.setManaged(true);
+	            return;
+	        }
+	        else {
+	            // Add check for special access groups
+	            if (!driver.getDBHelper().canDeleteArticleWithID(articleID, 
+	                    gp360EdDisc_GUIdriver.USERNAME, 
+	                    gp360EdDisc_GUIdriver.CURRENT_SESSION)) {
+	                label_enterIDToDelete.setVisible(false);
+	                label_enterIDToDelete.setManaged(false);
+	                label_idInvalid.setText("You don't have permission to delete this article");
+	                label_idInvalid.setVisible(true);
+	                label_idInvalid.setManaged(true);
+	                return;
+	            }
+
+	            label_enterIDToDelete.setVisible(false);
+	            label_enterIDToDelete.setManaged(false);
+	            label_idInvalid.setVisible(false);
+	            label_idInvalid.setManaged(false);
+
+	            btn_no.setOnAction(e -> {
+	                deleteArticleStage.close();
+	                text_ID.setText(""); // set field to empty string because deletion did not go through
+	            });
+	            btn_yes.setOnAction(e -> {
+	                boolean success = driver.getDBHelper().deleteArticleWithID(articleID);
+
+	                if(success) {
+	                    System.out.println("deleted article with given id: " + articleID);
+	                }
+	                else {
+	                    System.out.println("deletion of article did not go through.");
+	                }
+	                deleteArticleStage.close();
+	                text_ID.setText(""); // set field to empty string after deletion process
+	            });
+
+	            deleteArticleBox.setAlignment(Pos.CENTER);
+	            deleteArticleBox.setPadding(new Insets(10));
+
+	            buttonBox.setAlignment(Pos.CENTER);
+	            buttonBox.setPadding(new Insets(10));
+
+	            // create scene for stage
+	            Scene scene = new Scene(deleteArticleBox);
+	            // set scene on stage
+	            deleteArticleStage.setScene(scene);
+	            deleteArticleStage.setMinHeight(250);
+	            deleteArticleStage.setMinWidth(150);
+
+	            deleteArticleStage.showAndWait();
+	        }
+	    }
 	}
 	
 	private void handleListArticles(gp360EdDisc_GUIdriver driver) throws SQLException {
@@ -858,10 +901,23 @@ public class ArticleAPageUI {
 	    // Get checkbox state for "All Articles"
 	    boolean allSelected = check_All.isSelected();
 	    
-	    // Get groups from the text field and split by comma
+	    // Get groups from the text field and split by semicolon
 	    String groupsInput = text_groups.getText().trim();
 	    String[] selectedGroups = groupsInput.isEmpty() ? new String[0] : 
-	                            groupsInput.split(";\\s*");  // Split by comma and optional whitespace
+	                            groupsInput.split(";");
+	    
+	    // Check permissions if groups are specified and "All" is not selected
+	    if (!allSelected && selectedGroups.length > 0) {
+	        if (!gp360EdDisc_GUIdriver.getDBHelper().canListArticlesForGroups(groupsInput, 
+	                gp360EdDisc_GUIdriver.USERNAME)) {
+	            Alert alert = new Alert(Alert.AlertType.ERROR);
+	            alert.setTitle("Access Denied");
+	            alert.setHeaderText(null);
+	            alert.setContentText("You don't have permission to list articles for one or more of the specified groups.");
+	            alert.showAndWait();
+	            return;
+	        }
+	    }
 	    
 	    // Generate articles list
 	    String articlesList = gp360EdDisc_GUIdriver.getDBHelper().listArticles(selectedGroups, allSelected);
@@ -878,18 +934,16 @@ public class ArticleAPageUI {
 	    Button closeButton = new Button("Close");
 	    closeButton.setOnAction(e -> listArticlesStage.close());
 	    
-	    VBox mainLayout = new VBox(10); // 10 pixels spacing
+	    VBox mainLayout = new VBox(10);
 	    mainLayout.setPadding(new Insets(10));
 	    mainLayout.getChildren().addAll(articlesDisplay, closeButton);
 	    mainLayout.setAlignment(Pos.CENTER);
 	    
-	    // Create and set scene for stage
 	    Scene scene = new Scene(mainLayout);
 	    listArticlesStage.setScene(scene);
 	    
 	    listArticlesStage.setMinWidth(650);
 	    listArticlesStage.setMinHeight(500);
-	    
 	    listArticlesStage.showAndWait();
 	}
 	

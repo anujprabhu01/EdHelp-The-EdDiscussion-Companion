@@ -94,7 +94,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public void searchPage() {
 		theRoot.getChildren().clear();
 		SearchPageUI searchPage = new SearchPageUI(theRoot, this);
-		CURRENT_SESSION = "USER";
+		CURRENT_SESSION = "INSTRUCTOR";
 	}
 	
 	public void loadInstructorAccount() {
