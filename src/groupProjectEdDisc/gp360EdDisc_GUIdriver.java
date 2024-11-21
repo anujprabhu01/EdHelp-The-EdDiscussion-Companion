@@ -45,7 +45,7 @@ public class gp360EdDisc_GUIdriver extends Application {
 	/** The width of the pop-up window for the user interface */
 	public final static double WINDOW_WIDTH = 500;
 	/** The height of the pop-up window for the user interface */
-	public final static double WINDOW_HEIGHT = 500;
+	public final static double WINDOW_HEIGHT = 550;
 	public static String USERNAME = "";
 	public static String CURRENT_SESSION = "";
 	public static String CURRENT_SEARCH_GROUP = "";

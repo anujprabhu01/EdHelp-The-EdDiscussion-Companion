@@ -16,7 +16,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -30,6 +29,7 @@ public class SearchPageUI {
     
 	private Label label_ApplicationTitle = new Label("Search & Help");
 	private Button btn_logOut = new Button("Log Out");
+	private Button btn_menu = new Button("menu");
     
 	private Label label_genericHelp = new Label("Generic Help");
 	private ComboBox<String> helpComboBox = new ComboBox<>();
@@ -48,6 +48,7 @@ public class SearchPageUI {
 	private Button btn_clearCurrGroup = new Button("Clear group");
 	private Button btn_listGroup = new Button("List Group");
 	private Label label_groupError = new Label("Enter a valid group");
+	private Label label_NoAccess = new Label("No Access to group");
 	
 	private Label label_contentLevel = new Label("Content level");
 	RadioButton radio_All = new RadioButton("All");
@@ -64,6 +65,7 @@ public class SearchPageUI {
 	private TextField text_ID = new TextField();
 	private Button btn_view = new Button("View");
 	private Label label_idError = new Label("ID does\nnot exist");
+	private Label label_errorViewAccess = new Label("No\nAccess");
 	private Label label_searchError = new Label("Invalid\nsearch term");
 	
 	private ScrollPane resultsPane = new ScrollPane();
@@ -71,6 +73,22 @@ public class SearchPageUI {
 	
 	
 	public SearchPageUI(Pane theRoot, gp360EdDisc_GUIdriver driver) {		
+		
+		 btn_menu.setText("Menu");
+		 btn_menu.setLayoutX(10);
+	     btn_menu.setLayoutY(10);
+	     btn_menu.setMaxWidth(100);
+	     theRoot.getChildren().add(btn_menu);
+	            
+	     // Handle send invite
+	     btn_menu.setOnAction(e -> {
+	    	 try {
+	        	handleMenu(driver);
+	         } catch (SQLException ex) {
+	        	 ex.printStackTrace();
+	         }
+	     });
+	        
         // Setup for the application title at the top, centered
 	    setupLabelUI(label_ApplicationTitle, "Arial", 24, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 200, 
 	    		Pos.CENTER, 90, 10);
@@ -223,6 +241,9 @@ public class SearchPageUI {
         label_groupError.setVisible(false);
         label_groupError.setManaged(false);
         
+        setupLabelUI(label_NoAccess, "Arial", 14, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 250, 190, "red");
+        label_NoAccess.setVisible(false);
+        label_NoAccess.setManaged(false);
         
         //
         setupLabelUI(label_contentLevel, "Arial", 18, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
@@ -295,6 +316,11 @@ public class SearchPageUI {
         label_idError.setVisible(false);
         label_idError.setManaged(false);
         
+        
+        setupLabelUI(label_errorViewAccess, "Arial", 10, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, Pos.BASELINE_LEFT, 437, 340, "red");
+		label_errorViewAccess.setVisible(false);
+		label_errorViewAccess.setManaged(false);
+        
         btn_view.setText("View");
         btn_view.setLayoutX(390);
         btn_view.setLayoutY(333);
@@ -306,14 +332,24 @@ public class SearchPageUI {
         	if(text_ID.getText().isEmpty()) {
         		label_idError.setVisible(true);
         		label_idError.setManaged(true);
+        		
         	}else {
         		try {
         			label_idError.setVisible(false);
         			label_idError.setManaged(false);
+        			label_errorViewAccess.setVisible(false);
+					label_errorViewAccess.setManaged(false);
         			long id = Long.parseLong(text_ID.getText());
         			update2 =  gp360EdDisc_GUIdriver.getDBHelper().articleIdExists(id);
         			if(update2) {
-        				handleViewArticle(driver, id);
+        				if (gp360EdDisc_GUIdriver.getDBHelper().hasAccesstoArticle(id)) {
+        					handleViewArticle(driver, id);
+        				}
+        				else {
+        					label_errorViewAccess.setVisible(true);
+        					label_errorViewAccess.setManaged(true);
+        				}
+        				
         			}
         			else {
         				//setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y, String color)
@@ -342,7 +378,7 @@ public class SearchPageUI {
         theRoot.getChildren().addAll(label_ApplicationTitle, label_genericHelp, label_GenericError, label_specificHelp, 
         		text_specificRequest, label_SpecificError, label_SearchArticles, label_group, text_group, label_groupError,
         		label_contentLevel, label_searchByWordorPhrase, label_searchByID, text_WoP, text_ID, resultsPane, label_idError,
-        		label_searchError);
+        		label_searchError, label_NoAccess, label_errorViewAccess);
     }
 
     /**********************************************************************************************
@@ -352,6 +388,10 @@ public class SearchPageUI {
 		//Log Out
 		gp360EdDisc_GUIdriver.USERNAME = "";
 		driver.loadloginPage();
+	}
+	
+	private void handleMenu(gp360EdDisc_GUIdriver driver) throws SQLException { 
+		driver.showMenuPopUp(driver.CURRENT_SESSION);
 	}
 	
 	private void handleSendGeneric(gp360EdDisc_GUIdriver driver) {
@@ -420,14 +460,34 @@ public class SearchPageUI {
 	            // Hide the error label
 	            label_groupError.setVisible(false);
 	            label_groupError.setManaged(false);
+	            label_NoAccess.setVisible(false);
+        		label_NoAccess.setManaged(false);
 	            if (gp360EdDisc_GUIdriver.getDBHelper().groupExists(group)) {
-	            	gp360EdDisc_GUIdriver.CURRENT_SEARCH_GROUP = group;
-	            	text_group.clear();
-	            	Alert alert = new Alert(AlertType.INFORMATION);
-			        alert.setTitle("Current Group Set");
-			        alert.setHeaderText(null);
-			        alert.setContentText("Your current group has been set as " + group);
-			        alert.showAndWait();
+	            	if (gp360EdDisc_GUIdriver.getDBHelper().isSpecialAccess(group)) {
+		            	if (gp360EdDisc_GUIdriver.getDBHelper().hasAccesstoGroup(group)) {
+		            		gp360EdDisc_GUIdriver.CURRENT_SEARCH_GROUP = group;
+			            	text_group.clear();
+			            	Alert alert = new Alert(AlertType.INFORMATION);
+					        alert.setTitle("Current Group Set");
+					        alert.setHeaderText(null);
+					        alert.setContentText("Your current group has been set as " + group);
+					        alert.showAndWait();
+		            	}
+		            	else {
+		            		label_NoAccess.setVisible(true);
+		            		label_NoAccess.setManaged(true);
+		            		return;
+		            	}
+	            	}
+				    else {
+				    	gp360EdDisc_GUIdriver.CURRENT_SEARCH_GROUP = group;
+		            	text_group.clear();
+		            	Alert alert = new Alert(AlertType.INFORMATION);
+				        alert.setTitle("Current Group Set");
+				        alert.setHeaderText(null);
+				        alert.setContentText("Your current group has been set as " + group);
+				        alert.showAndWait();
+				    }
 	            }
 	            else {
 	            	label_groupError.setVisible(true);

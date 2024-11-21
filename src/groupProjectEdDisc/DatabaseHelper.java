@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.h2.tools.*;
 
@@ -48,7 +50,7 @@ class DatabaseHelper {
 			System.out.println("Connecting to database...");
 			connection = DriverManager.getConnection(DB_URL, USER, PASS);
 			statement = connection.createStatement();
-			createTables(); // Create the necessary tables if they don't exist
+			createTables(); // Create the necessary tables if they don't exist yeah
 		} catch (ClassNotFoundException e) {
 			System.err.println("JDBC Driver not found: " + e.getMessage());
 		}
@@ -96,7 +98,7 @@ class DatabaseHelper {
 				+ "admins VARCHAR(255), "
 				+ "students VARCHAR(255), "
 				+ "instructors VARCHAR(255), "
-				+ "firstInstructor VARCHAR(255))";
+				+ "firstInstructor VARCHAR(255))"; 
 
 		statement.execute(userTable);
 		statement.execute(invitationTable);
@@ -1019,6 +1021,67 @@ class DatabaseHelper {
 			e.printStackTrace();
 		}
 	}
+	
+	//Backs up the articles in a certian group to a file
+	public void backupDatabaseByGroup(String fileName, String group) throws Exception {
+		String query = "SELECT id, level, groups, permissions, title, descriptor, keywords, body, reference FROM articles WHERE groups LIKE ?";
+		try (BufferedWriter w = new BufferedWriter(new FileWriter(fileName)); 
+				PreparedStatement pstmt = connection.prepareStatement(query)) {
+
+			pstmt.setString(1, "%" + group + "%"); 
+			try (ResultSet rs = pstmt.executeQuery()) {
+				while (rs.next()) {
+		             // Extracting article details
+		             int id = rs.getInt("id");
+		             String level = rs.getString("level");
+		             String groups = rs.getString("groups");
+		             String permissions = rs.getString("permissions");
+		             String title = rs.getString("title");
+		             String descriptor = rs.getString("descriptor");
+		             String keywords = rs.getString("keywords");
+		             String body = rs.getString("body");
+		             String references = rs.getString("reference");
+	
+		             // Writing the article data to the file
+		             w.write(String.format("%d,,,%s,,,%s,,,%s,,,%s,,,%s,,,%s,,,%s,,,%s", 
+		                     id, level, groups, permissions, title, descriptor, keywords, body, references));
+		             w.newLine(); // Add a new line after each article
+				}
+			}
+		} catch (IOException | SQLException e) {
+			throw new Exception("Failed to back up the database by group", e);
+		}
+	}
+	
+	//Restores a group of articles from backup file
+	public boolean restoreDatabaseByGroup(String fileName, String group) throws Exception {
+		clearDatabase(); // empties the database to be rep-opulated from the file
+		String line;
+		try (BufferedReader r = new BufferedReader(new FileReader(fileName))) { // BufferedReader is used to read the file																																			// input
+			while ((line = r.readLine()) != null) { // Loops through line by line
+				String[] portions = line.split(",,,"); // Spits each line into sections delimited by the *
+
+				int id = Integer.parseInt(portions[0]);
+				String level = portions[1];
+				String groups = portions[2];
+				String permissions = portions[3];
+				String title = portions[4];
+				String descriptor = portions[5];
+				String keywords = portions[6];
+				String body = portions[7];
+				String references = portions[8];
+
+				addArticleWithID(id, level, groups, permissions, title, descriptor, keywords, body, references); // adds each
+																																																					// article to
+																																																					// the
+																																																					// database
+			}
+			return true;
+		} catch (IOException | SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
 
 	public boolean idExistsInDatabase(int id) throws SQLException {
 		String query = "SELECT 1 FROM articles WHERE id = ?";
@@ -1345,5 +1408,131 @@ class DatabaseHelper {
 	        e.printStackTrace();
 	    }
 	    return null;
+	}
+	
+	public boolean isSpecialAccess(String group) throws SQLException {
+		String query = "SELECT specialAccess FROM groups WHERE groupName = ?";
+
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, group);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) {
+					// Check the value of specialAccess
+					boolean isSpecialAccess = rs.getBoolean("specialAccess");
+					// Return true if setup is not finished, otherwise false
+					return isSpecialAccess;
+				}
+			}
+		}
+		return false;
+	}
+	
+	public boolean hasAccesstoGroup(String group) {
+		String username = gp360EdDisc_GUIdriver.USERNAME; 
+	    String query = "SELECT 1 FROM groups WHERE groupName = ? AND "
+	                 + "(students LIKE ? OR instructors LIKE ?)";
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+
+	    	pstmt.setString(1, group);
+	    	pstmt.setString(2, "%" + username + "%"); 
+	    	pstmt.setString(3, "%" + username + "%");
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                return true;
+	            }
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace(); 
+	    }
+	    return false;
+	}
+	
+	public boolean hasAccesstoArticle(Long ID) {
+		String username = gp360EdDisc_GUIdriver.USERNAME;
+	    String query = "SELECT groups FROM articles WHERE id = ?";
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	    	pstmt.setLong(1, ID); 
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String groups = rs.getString("groups"); 
+	                if (groups != null) {
+	                    String[] groupArray = groups.split(";");
+	                    for (String group : groupArray) {
+	                        if (hasAccesstoGroup(group.trim()) && isSpecialAccess(group.trim()) || !isSpecialAccess(group.trim())) {
+	                            return true; 
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }  
+	    return false;	
+	}
+	
+	public List<String> listStudentsGroup(String group) throws SQLException {
+	    String query = "SELECT students FROM groups WHERE groupName = ?";
+	    List<String> studentsList = new ArrayList<>();
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, group); 
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String students = rs.getString("students"); 
+	                if (students != null && !students.isEmpty()) {
+	                    String[] studentsArray = students.split(";"); 
+	                    for (String student : studentsArray) {
+	                        studentsList.add(student.trim()); 
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    return studentsList;
+	}
+	
+	public List<String> listInstructorsGroup(String group) throws SQLException {
+	    String query = "SELECT instructors FROM groups WHERE groupName = ?";
+	    List<String> instructorsList = new ArrayList<>();
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, group); 
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String instructors = rs.getString("instructors"); 
+	                if (instructors != null && !instructors.isEmpty()) {
+	                    String[] instructorsArray = instructors.split(";"); 
+	                    for (String instructor : instructorsArray) {
+	                    	instructorsList.add(instructor.trim()); 
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    return instructorsList;
+	}
+	
+	public List<String> listAdminsGroup(String group) throws SQLException {
+	    String query = "SELECT admins FROM groups WHERE groupName = ?";
+	    List<String> adminsList = new ArrayList<>();
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+	        pstmt.setString(1, group); 
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String admins = rs.getString("admins"); 
+	                if (admins != null && !admins.isEmpty()) {
+	                    String[] adminsArray = admins.split(";"); 
+	                    for (String admin : adminsArray) {
+	                    	adminsList.add(admin.trim()); 
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    return adminsList;
 	}
 }

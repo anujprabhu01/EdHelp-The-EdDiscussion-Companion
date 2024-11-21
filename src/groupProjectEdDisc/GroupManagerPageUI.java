@@ -1,19 +1,25 @@
 package groupProjectEdDisc;
 
 import java.sql.SQLException;
+import java.util.List;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class GroupManagerPageUI {
     private Label label_ApplicationTitle = new Label("Group Manager");
@@ -68,6 +74,18 @@ public class GroupManagerPageUI {
     private Button btn_listInstructors = new Button("List Instructors");
     private Button btn_listAdmins = new Button("List Admins");
     private VBox listAccessBox;
+    
+    // Backup/restore section
+    private Label label_BackupandRestoreArticles = new Label("Backup and restore Articles by group");
+    private Label label_fileName = new Label("File Name (.csv)");
+    private TextField text_fileName = new TextField();
+    private Button btn_backupToFile = new Button("Backup");
+	private Button btn_RestoreToBackup = new Button("Restore");
+	private Button btn_MergeFromBackup = new Button("Merge");
+	private Label label_noFile = new Label("Please enter a filename");
+	private Label label_noCurrGroup = new Label("No current Group");
+	private VBox backupBox;
+    
     
     private Label label_groupNameEmpty = new Label("Please enter a group name");
     private Label label_groupExists = new Label("A group with this name already exists");
@@ -164,12 +182,76 @@ public class GroupManagerPageUI {
         btn_listAdmins.setPrefWidth(100);
         listButtonsBox.getChildren().addAll(btn_listStudents, btn_listInstructors, btn_listAdmins);
         
+        btn_listStudents.setOnAction(e -> {
+        	try {
+        		handlelistStudents(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+        
+        btn_listInstructors.setOnAction(e -> {
+        	try {
+        		handlelistInstructors(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+        
+        btn_listAdmins.setOnAction(e -> {
+        	try {
+        		handlelistAdmins(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+        
         listAccessBox.getChildren().addAll(label_listAccess, listButtonsBox);
+        
+        
+        
+     // backup/restore section setup
+        backupBox = new VBox(5);
+        setupLabelUI(label_BackupandRestoreArticles, "Arial", 14, 200, Pos.BASELINE_LEFT, 0, 0);
+        setupLabelUI(label_fileName, "Arial", 10, 200, Pos.BASELINE_LEFT, 10, 0);
+        
+        HBox backupControlBox = new HBox(10);
+        text_studentName.setPrefWidth(150);
+        backupControlBox.getChildren().addAll(text_fileName, btn_backupToFile, btn_RestoreToBackup, btn_MergeFromBackup);
+        
+        setupLabelUI(label_noFile, "Arial", 10, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
+        label_noFile.setVisible(false);
+        label_noFile.setManaged(false);
+        
+        setupLabelUI(label_noCurrGroup, "Arial", 10, gp360EdDisc_GUIdriver.WINDOW_WIDTH - 10, 
+                Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
+        label_noCurrGroup.setVisible(false);
+        label_noCurrGroup.setManaged(false);
+        
+        backupBox.getChildren().addAll(label_BackupandRestoreArticles, label_fileName, backupControlBox, label_noFile, label_noCurrGroup);
+        
+        btn_backupToFile.setOnAction(e -> {
+        	try {
+        		handleBackupToFile(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+        
+        btn_RestoreToBackup.setOnAction(e -> {
+        	try {
+        		handleRestoreToBackup(driver);
+        	} catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+    
 
         // Add all sections to main container
         mainContainer.getChildren().addAll(
             activeGroupBox, createGroupBox, deleteGroupBox, studentBox,
-            instructorBox, adminBox, listAccessBox
+            instructorBox, adminBox, listAccessBox, backupBox
         );
 
         // Set up initial state of controls and role-based access
@@ -209,12 +291,81 @@ public class GroupManagerPageUI {
                 Pos.BASELINE_LEFT, 20, createNameBox.getLayoutY() + 30, "red");
             label_systemError.setVisible(false);
             label_systemError.setManaged(false);
+  
 
         // Add all elements to the root pane
         theRoot.getChildren().addAll(
             label_ApplicationTitle, btn_menu, btn_logOut,
             mainContainer, label_groupNameEmpty, label_groupExists, label_systemError
         );
+    }
+    
+    private void handlelistStudents(gp360EdDisc_GUIdriver driver) throws SQLException {
+    	String group = text_groupNameDisplay.getText();
+    	List<String> students = gp360EdDisc_GUIdriver.getDBHelper().listStudentsGroup(group);
+    	
+    	Alert alert = new Alert(Alert.AlertType.INFORMATION); 
+        alert.setTitle("Student List");
+        alert.setHeaderText("Students in Group: " + group);
+
+        if (students.isEmpty()) {
+            alert.setContentText("No students found in group");
+        } else {
+            StringBuilder studentList = new StringBuilder();
+            for (String student : students) {
+                studentList.append(student).append("\n");
+            }
+            alert.setContentText(studentList.toString());
+        }
+
+        alert.initModality(Modality.NONE); 
+        alert.show(); 	
+    }
+    
+    private void handlelistInstructors(gp360EdDisc_GUIdriver driver) throws SQLException {
+    	String group = text_groupNameDisplay.getText();
+    	List<String> instructors = gp360EdDisc_GUIdriver.getDBHelper().listInstructorsGroup(group);
+    	
+    	Alert alert = new Alert(Alert.AlertType.INFORMATION); 
+        alert.setTitle("Instructor List");
+        alert.setHeaderText("Instructors in Group: " + group);
+
+        if (instructors.isEmpty()) {
+            alert.setContentText("No instructors found in group");
+        } else {
+            StringBuilder instructorsList = new StringBuilder();
+            for (String instructor : instructors) {
+            	instructorsList.append(instructor).append("\n");
+            }
+            alert.setContentText(instructorsList.toString());
+        }
+
+        alert.initModality(Modality.NONE); 
+        alert.show();
+    	
+    }
+    
+    private void handlelistAdmins(gp360EdDisc_GUIdriver driver) throws SQLException {
+    	String group = text_groupNameDisplay.getText();
+    	List<String> admins = gp360EdDisc_GUIdriver.getDBHelper().listAdminsGroup(group);
+    	
+    	Alert alert = new Alert(Alert.AlertType.INFORMATION); 
+        alert.setTitle("Admins List");
+        alert.setHeaderText("Admins in Group: " + group);
+
+        if (admins.isEmpty()) {
+            alert.setContentText("No admins found in group");
+        } else {
+            StringBuilder adminsList = new StringBuilder();
+            for (String admin : admins) {
+            	adminsList.append(admin).append("\n");
+            }
+            alert.setContentText(adminsList.toString());
+        }
+
+        alert.initModality(Modality.NONE); 
+        alert.show();
+    	
     }
     
     private void handleCreateGroup() {
@@ -371,6 +522,104 @@ public class GroupManagerPageUI {
         errorToShow.setVisible(true);
         errorToShow.setManaged(true);
     }
+    
+    private void handleBackupToFile(gp360EdDisc_GUIdriver driver) throws SQLException{
+		if (text_fileName.getText().equals("")) {
+			label_noFile.setVisible(true);
+	        label_noFile.setManaged(true);
+		}
+		else if (text_groupNameDisplay.getText().equals("") || !check_activeGroup.isSelected()) {
+			label_noCurrGroup.setVisible(true);
+	        label_noCurrGroup.setManaged(true);
+		}
+		else {
+			try {
+				label_noFile.setVisible(false);
+		        label_noFile.setManaged(false);
+		        label_noCurrGroup.setVisible(false);
+		        label_noCurrGroup.setManaged(false);
+				String fileName = text_fileName.getText();
+				if (fileName == "") {
+					//set error label visibility for no entry
+					return;
+				}
+				String group = text_groupNameDisplay.getText();
+				gp360EdDisc_GUIdriver.getDBHelper().backupDatabaseByGroup(fileName, group);
+				text_fileName.setText("");
+				Alert alert = new Alert(AlertType.INFORMATION);
+				alert.setTitle("Backup Successful");
+				alert.setHeaderText(null);
+				alert.setContentText("A backup of the articles in the group has been made at: " + fileName);
+		        alert.showAndWait();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				
+				Alert alert = new Alert(AlertType.ERROR);
+		        alert.setTitle("Backup Failed");
+		        alert.setHeaderText(null);
+		        alert.setContentText("An error occurred while creating the backup.");
+		        alert.showAndWait();
+			}
+		}	
+	}
+    
+    private void handleRestoreToBackup(gp360EdDisc_GUIdriver driver) throws SQLException{
+		if (text_fileName.getText().equals("")) {
+			label_noFile.setVisible(true);
+	        label_noFile.setManaged(true);
+		}
+		else if (text_groupNameDisplay.getText().equals("") || !check_activeGroup.isSelected()) {
+			label_noCurrGroup.setVisible(true);
+	        label_noCurrGroup.setManaged(true);
+		}
+		else {
+			try {
+				label_noFile.setVisible(false);
+		        label_noFile.setManaged(false);
+		        label_noCurrGroup.setVisible(false);
+		        label_noCurrGroup.setManaged(false);
+				String fileName = text_fileName.getText();
+				
+				Stage restoreStage = new Stage();
+				restoreStage.setTitle("Are you sure?");
+				restoreStage.initModality(Modality.APPLICATION_MODAL); //this is important because it prevents the user from doing anything other than in the pop-up scene
+				restoreStage.setOnCloseRequest(WindowEvent::consume);
+				
+				Label restoreWarning = new Label("Are you sure you want to restore from backup?\nThe current article database will be erased.");
+				Button noConfirm = new Button("No");
+				Button yesConfirm = new Button("Yes");
+				
+				noConfirm.setOnAction(e -> {
+					restoreStage.close();
+					text_fileName.setText("");
+				});
+						
+				yesConfirm.setOnAction(e -> {
+					try {
+						String group = text_groupNameDisplay.getText();
+						gp360EdDisc_GUIdriver.getDBHelper().restoreDatabaseByGroup(fileName, group);
+						restoreStage.close();
+						text_fileName.setText("");
+					}
+					catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				});
+				
+				VBox deletePopup = new VBox(10, restoreWarning, noConfirm, yesConfirm);
+				deletePopup.setAlignment(Pos.CENTER);
+				deletePopup.setPrefSize(350, 150);
+				Scene popupRestoreScene = new Scene(deletePopup);
+				
+				restoreStage.setScene(popupRestoreScene);
+				restoreStage.showAndWait();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}	
+	}
 
     private void setupLabelUI(Label l, String font, double fontSize, double width, Pos alignment, double x, double y) {
         l.setFont(Font.font(font, fontSize));
