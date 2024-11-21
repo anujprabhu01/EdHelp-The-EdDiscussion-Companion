@@ -34,6 +34,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Random;
 
 
+
+
 public class ArticleAPageUI { 
 	private Label label_ApplicationTitle = new Label("Article Manager");
 	private Button btn_logOut = new Button("Log Out");
@@ -539,7 +541,14 @@ public class ArticleAPageUI {
 	        String level = gp360EdDisc_GUIdriver.getDBHelper().getLevel(id);
 	        String title = gp360EdDisc_GUIdriver.getDBHelper().getTitle(id);
 	        String descriptor = gp360EdDisc_GUIdriver.getDBHelper().getDescriptor(id);
-	        String body = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);
+	        String body = gp360EdDisc_GUIdriver.getDBHelper().getBody(id);				//FIXME
+	        
+	        char[] body3 = gp360EdDisc_GUIdriver.getDBHelper().decryptBody(body);
+	        String body4 = new String(body3);
+	        
+	        EncryptionUtils.printCharArray(body3);
+	        System.out.println();
+	        
 	        String keywords = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
 	        String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 
@@ -565,7 +574,7 @@ public class ArticleAPageUI {
 	        keywordsLabel.setWrapText(true);
 	        keywordsLabel.setFont(Font.font("Arial", 18));
 	        
-	        Label bodyLabel = new Label(body);
+	        Label bodyLabel = new Label(body4);
 	        bodyLabel.setWrapText(true);
 	        bodyLabel.setFont(Font.font("Arial", 18));
 	        
@@ -696,7 +705,10 @@ public class ArticleAPageUI {
 	    bodyField.setPrefRowCount(8);
 	    Label bodyLabel = new Label("Body:");
 	    VBox bodyBox = new VBox(5, bodyLabel, bodyField);
-	    bodyField.setText(body2);
+	    
+	    char[] body3 = gp360EdDisc_GUIdriver.getDBHelper().decryptBody(body2);
+        String body4 = new String(body3);
+	    bodyField.setText(body4);
 
 	    TextField text_reference = new TextField();
 	    Label label_reference = new Label("Reference:");
@@ -943,7 +955,8 @@ public class ArticleAPageUI {
 	    listArticlesStage.setScene(scene);
 	    
 	    listArticlesStage.setMinWidth(650);
-	    listArticlesStage.setMinHeight(500);
+	    listArticlesStage.setMinHeight(500); 
+	    //this is a change in the code
 	    listArticlesStage.showAndWait();
 	}
 	

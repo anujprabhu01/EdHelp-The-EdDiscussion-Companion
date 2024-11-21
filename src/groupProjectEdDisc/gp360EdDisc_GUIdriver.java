@@ -340,11 +340,18 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public static void main(String[] args) {	
 		try { 
 			databaseHelper.startH2Console();
+			databaseHelper.encryptionHelper(); //connect to encryptionHelper
 			databaseHelper.connectToDatabase(); // Connect to the database
+			
+			
+			
 			
 			launch(args);		
 		} catch (SQLException e) {
 			System.err.println("Database error: " + e.getMessage());
+			e.printStackTrace();
+		} catch (Exception e) {
+			System.err.println("Encryption error: " + e.getMessage());
 			e.printStackTrace();
 		}
 		finally {

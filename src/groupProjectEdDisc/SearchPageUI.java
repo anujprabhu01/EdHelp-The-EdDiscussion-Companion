@@ -556,7 +556,7 @@ public class SearchPageUI {
 		String keywords = gp360EdDisc_GUIdriver.getDBHelper().getKeywords(id);
 		String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 		
-		
+		String currentUser = gp360EdDisc_GUIdriver.USERNAME;
 		// Create a new Stage
 	    Stage viewArticleStage = new Stage();
 	    viewArticleStage.setTitle("Article #"+id);
@@ -581,10 +581,27 @@ public class SearchPageUI {
 	    keywordsLabel.setFont(Font.font("Arial", 18));
 	    //keywordsLabel.setStyle("-fx-font-weight: bold");
 	    
-	    Label bodyLabel = new Label(body);
-	    bodyLabel.setWrapText(true);
-	    bodyLabel.setFont(Font.font("Arial", 18));
-	    //bodyLabel.setStyle("-fx-font-weight: bold");
+	    
+	    boolean view = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, currentUser);
+	    
+	    Label bodyLabel;
+	    if(view) {
+	    	char[] body3 = gp360EdDisc_GUIdriver.getDBHelper().decryptBody(body);
+	        String body4 = new String(body3);
+	    	
+	    	bodyLabel = new Label(body4);
+	    	bodyLabel.setWrapText(true);
+		    bodyLabel.setFont(Font.font("Arial", 18));
+	    }else {
+	    	bodyLabel = new Label(body);
+	    	bodyLabel.setWrapText(true);
+		    bodyLabel.setFont(Font.font("Arial", 18));
+		  //bodyLabel.setStyle("-fx-font-weight: bold");
+	    }
+	   
+	    
+	    
+	    
 	    
 	    Label referenceLabel = new Label(reference);
 	    referenceLabel.setWrapText(true);

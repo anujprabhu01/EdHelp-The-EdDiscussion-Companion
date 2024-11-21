@@ -9,8 +9,14 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Base64;
 
 import org.h2.tools.*;
+
+
+
+
+
 
 class DatabaseHelper {
 
@@ -27,6 +33,12 @@ class DatabaseHelper {
 	// PreparedStatement pstmt
 
 	private Server h2Console;
+	
+	private EncryptionHelper encryptionHelper;
+	
+	public void encryptionHelper() throws Exception {
+			encryptionHelper = new EncryptionHelper();
+	}
 
 	public void startH2Console() {
 		try {
@@ -734,6 +746,11 @@ class DatabaseHelper {
 
 	public void createArticle(String level, String groups, String permissions, String title, String descriptor,
 			String keywords, String body, String references) throws Exception {
+		
+		String IV = "cse360hw6"; //encryption key DO NOT CHANGE
+		String encryptedBody = Base64.getEncoder().encodeToString(
+				encryptionHelper.encrypt(body.getBytes(), EncryptionUtils.getInitializationVector(IV.toCharArray()))
+		);
 		String query = "INSERT INTO articles (level, groups, permissions, title, descriptor, keywords, body, reference) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, level);
@@ -742,7 +759,7 @@ class DatabaseHelper {
 			pstmt.setString(4, title);
 			pstmt.setString(5, descriptor);
 			pstmt.setString(6, keywords);
-			pstmt.setString(7, body);
+			pstmt.setString(7, encryptedBody);
 			pstmt.setString(8, references);
 
 			pstmt.executeUpdate();
@@ -752,6 +769,10 @@ class DatabaseHelper {
 	public void updateArticle(long id, String level, String groups, String permissions, String title, String descriptor,
 			String keywords, String body, String references) throws Exception {
 		// SQL query for updating an article by ID
+		String IV = "cse360hw6"; //encryption key DO NOT CHANGE
+		String encryptedBody = Base64.getEncoder().encodeToString(
+				encryptionHelper.encrypt(body.getBytes(), EncryptionUtils.getInitializationVector(IV.toCharArray()))
+		);
 		String query = "UPDATE articles SET title = ?, level = ?, groups = ?, permissions = ?, descriptor = ?, keywords = ?, body = ?, reference = ? WHERE id = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			// Set values for each parameter in the SQL query
@@ -761,13 +782,34 @@ class DatabaseHelper {
 			pstmt.setString(4, permissions);
 			pstmt.setString(5, descriptor);
 			pstmt.setString(6, keywords);
-			pstmt.setString(7, body);
+			pstmt.setString(7, encryptedBody);
 			pstmt.setString(8, references);
 			pstmt.setLong(9, id); // The article ID goes at the end (WHERE clause)
 
 			pstmt.executeUpdate();
 		}
 
+	}
+	
+	public char[] decryptBody(String encryptedBody) {
+		String IV = "cse360hw6"; //encryption key  DO NOT CHANGE
+		String error2 = "error";
+		char[] decryptedBody;
+		try {
+			decryptedBody = EncryptionUtils.toCharArray(
+					encryptionHelper.decrypt(
+							Base64.getDecoder().decode(
+									//EncryptionUtils.toByteArray(encryptedBody.toCharArray())
+									encryptedBody
+							), 
+							EncryptionUtils.getInitializationVector(IV.toCharArray())						 //FIXME
+					)	
+			);
+		}catch(Exception e) {
+			e.printStackTrace();
+			decryptedBody = error2.toCharArray();
+		}
+		return decryptedBody;
 	}
 	
 	public boolean canAccessArticles(String username) throws SQLException {
@@ -1495,6 +1537,7 @@ class DatabaseHelper {
 	    if (groupsString == null || groupsString.trim().isEmpty()) {
 	        return true;
 	    }
+	
 
 	    String[] groups = groupsString.split(";");
 	    for (String group : groups) {
@@ -1619,6 +1662,7 @@ class DatabaseHelper {
 	        rs.getString("TITLE"), 
 	        rs.getString("DESCRIPTOR"), 
 	        rs.getString("KEYWORDS"), 
+			
 	        rs.getString("BODY"), 
 	        rs.getString("REFERENCE")));
 	}
