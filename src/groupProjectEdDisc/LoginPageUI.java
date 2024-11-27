@@ -133,12 +133,15 @@ public class LoginPageUI {
 			}
 			else {
 				if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "admin") {
+					gp360EdDisc_GUIdriver.CURRENT_SESSION = "ADMIN";
 					driver.loadAdminAccount();
 				}
 				else if (gp360EdDisc_GUIdriver.getDBHelper().oneRoleReturn() == "instructor"){
+					gp360EdDisc_GUIdriver.CURRENT_SESSION = "INSTRUCTOR";
 					driver.loadInstructorAccount();
 				}
 				else {
+					gp360EdDisc_GUIdriver.CURRENT_SESSION = "STUDENT";
 					driver.searchPage();
 				}
 			}

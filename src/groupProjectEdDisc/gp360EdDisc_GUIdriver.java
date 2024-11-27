@@ -94,19 +94,19 @@ public class gp360EdDisc_GUIdriver extends Application {
 	public void searchPage() {
 		theRoot.getChildren().clear();
 		SearchPageUI searchPage = new SearchPageUI(theRoot, this);
-		CURRENT_SESSION = "INSTRUCTOR";
+		
 	}
 	
 	public void loadInstructorAccount() {
 		theRoot.getChildren().clear();
 		InstructorAccountPageUI instructorAccountPage = new InstructorAccountPageUI(theRoot, this);
-		CURRENT_SESSION = "INSTRUCTOR";
+		//CURRENT_SESSION = "INSTRUCTOR";
 	}
 	
 	public void loadAdminAccount() {
 		theRoot.getChildren().clear();
 		AdminAccountPageUI adminAccountPage = new AdminAccountPageUI(theRoot, this);
-		CURRENT_SESSION = "ADMIN";
+		//CURRENT_SESSION = "ADMIN";
 	}
 	
 	public void loadArticleAPage() {
@@ -168,14 +168,17 @@ public class gp360EdDisc_GUIdriver extends Application {
 	        if (getDBHelper().isAdminForUsers(USERNAME)) {
 	            btn_Admin.setVisible(true);
 	            btn_Admin.setManaged(true);
+	            CURRENT_SESSION = "ADMIN";
 	        }
 	        if (getDBHelper().isInstructorForUsers(USERNAME)) {
 	            btn_Instructor.setVisible(true);
 	            btn_Instructor.setManaged(true);
+	            CURRENT_SESSION = "INSTRUCTOR";
 	        }
 	        if (getDBHelper().isStudentForUsers(USERNAME)) {
 	            btn_Student.setVisible(true);
 	            btn_Student.setManaged(true);
+	            CURRENT_SESSION = "STUDENT";
 	        }
 
 	        // Show and wait should be called after everything is set

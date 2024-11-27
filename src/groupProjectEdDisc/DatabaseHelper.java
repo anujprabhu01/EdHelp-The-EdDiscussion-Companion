@@ -802,7 +802,7 @@ class DatabaseHelper {
 									//EncryptionUtils.toByteArray(encryptedBody.toCharArray())
 									encryptedBody
 							), 
-							EncryptionUtils.getInitializationVector(IV.toCharArray())						 //FIXME
+							EncryptionUtils.getInitializationVector(IV.toCharArray())						 
 					)	
 			);
 		}catch(Exception e) {
@@ -1483,7 +1483,9 @@ class DatabaseHelper {
 	        columnName = "admins";
 	    } else if (role.equals("INSTRUCTOR")) {
 	        columnName = "instructors";
-	    } else {
+	    } else if (role.equals("STUDENT")) {
+	        columnName = "students";
+	    }else {
 	        return false; // For any other role
 	    }
 
@@ -1592,7 +1594,7 @@ class DatabaseHelper {
 	    return true;
 	}
 	
-	public boolean canViewArticle(long articleId, String username) throws SQLException {
+	public boolean canViewArticle(long articleId, String username, String role) throws SQLException {
 	    // Get the groups associated with this article
 	    String groups = getGroups(articleId);
 	    
@@ -1610,7 +1612,7 @@ class DatabaseHelper {
 	        // Check if it's a special access group
 	        if (isSpecialAccessGroup(groupName)) {
 	            // For special access groups, verify user has instructor access
-	            if (!hasAccessToGroup(groupName, username, "INSTRUCTOR")) {
+	            if (!hasAccessToGroup(groupName, username, role)) {
 	                return false;  // If user doesn't have access to any special access group, deny access
 	            }
 	        }

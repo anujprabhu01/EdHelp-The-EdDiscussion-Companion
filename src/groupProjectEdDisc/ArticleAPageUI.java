@@ -525,9 +525,10 @@ public class ArticleAPageUI {
 	}
 	
 	private void handleViewArticle(gp360EdDisc_GUIdriver driver, long id) throws SQLException {
+		String role = gp360EdDisc_GUIdriver.CURRENT_SESSION;
 	    try {
 	        // First check if the user has permission to view this article
-	        boolean canView = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, gp360EdDisc_GUIdriver.USERNAME);
+	        boolean canView = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, gp360EdDisc_GUIdriver.USERNAME, role);
 	        
 	        if (!canView) {
 	            // Show error message - user doesn't have permission

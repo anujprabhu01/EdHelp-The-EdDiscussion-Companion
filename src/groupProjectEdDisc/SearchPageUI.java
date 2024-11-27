@@ -557,6 +557,7 @@ public class SearchPageUI {
 		String reference = gp360EdDisc_GUIdriver.getDBHelper().getReference(id);
 		
 		String currentUser = gp360EdDisc_GUIdriver.USERNAME;
+		String currentRole = gp360EdDisc_GUIdriver.CURRENT_SESSION;
 		// Create a new Stage
 	    Stage viewArticleStage = new Stage();
 	    viewArticleStage.setTitle("Article #"+id);
@@ -582,7 +583,7 @@ public class SearchPageUI {
 	    //keywordsLabel.setStyle("-fx-font-weight: bold");
 	    
 	    
-	    boolean view = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, currentUser);
+	    boolean view = gp360EdDisc_GUIdriver.getDBHelper().canViewArticle(id, currentUser, currentRole);
 	    
 	    Label bodyLabel;
 	    if(view) {
